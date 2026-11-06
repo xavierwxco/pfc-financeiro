@@ -56,10 +56,16 @@ function render(){
  el('cardPurchaseRows').innerHTML=purchases.map(p=>`<tr><td>${escape(p.description)}</td><td>${escape(cardMap.get(p.card_id)?.label||'Cartão')}</td><td>${brDate(p.purchased_on)}</td><td>${p.installment_count}x</td><td>${p.expense_scope==='common'?'Comum':'Individual'}</td><td class="right">${fmtMoney(p.total_amount)}</td></tr>`).join('')||'<tr><td colspan="6">Nenhuma compra cadastrada.</td></tr>';
  const purchaseMap=new Map(purchases.map(p=>[p.id,p]));const grouped=new Map();
  for(const inst of installments){const purchase=purchaseMap.get(inst.purchase_id);if(!purchase)continue;const card=cardMap.get(purchase.card_id);if(!card)continue;const key=card.id+'|'+inst.invoice_due_on.slice(0,7);let v=grouped.get(key);if(!v){v={label:card.label,due:inst.invoice_due_on,amount:0,count:0};grouped.set(key,v)}v.amount+=Number(inst.amount);v.count++;if(inst.invoice_due_on<v.due)v.due=inst.invoice_due_on}
- const paidMap=new Map(invoicePayments.map(p=>[p.card_id+'|'+p.invoice_month.slice(0,7),p]));
+ const paidMap=new Map();
+ for(const p of invoicePayments){const key=p.card_id+'|'+p.invoice_month.slice(0,7);
+  const entry=paidMap.get(key)||{amount:0,rows:[]};entry.amount+=Number(p.amount);entry.rows.push(p);paidMap.set(key,entry)}
  el('invoiceRows').innerHTML=[...grouped.entries()].sort((a,b)=>a[1].due.localeCompare(b[1].due)).map(([key,v])=>{
   const paid=paidMap.get(key),cardId=key.split('|')[0],month=key.split('|')[1];
-  return `<tr><td>${escape(v.label)}</td><td>${brDate(v.due)}</td><td>${v.count}</td><td class="right">${fmtMoney(v.amount)}</td><td>${paid?`<strong>Pago em ${brDate(paid.paid_on)}</strong><small style="display:block">Por ${escape(labelOwner(paid.paid_by))}</small>`:`<button class="outline-btn" data-pay-invoice="${cardId}|${month}">Registrar pagamento</button>`}</td></tr>`;
+  const paidCents=Math.round((paid?.amount||0)*100),totalCents=Math.round(v.amount*100);
+  const remainCents=Math.max(0,totalCents-paidCents);
+  const status=remainCents===0?'<strong>Quitada</strong>':paidCents>0?'<strong>Parcialmente paga</strong>':'<strong>Em aberto</strong>';
+  const action=remainCents>0?`<button class="outline-btn" data-pay-invoice="${cardId}|${month}">Registrar pagamento</button>`:'';
+  return `<tr><td>${escape(v.label)}</td><td>${brDate(v.due)}</td><td>${v.count}</td><td class="right">${fmtMoney(v.amount)}</td><td>${status}<small style="display:block">Pago: ${fmtMoney(paidCents/100)} · Pendente: ${fmtMoney(remainCents/100)}</small>${action}</td></tr>`;
  }).join('')||'<tr><td colspan="5">Nenhuma fatura prevista.</td></tr>';
  for(const btn of el('invoiceRows').querySelectorAll('[data-pay-invoice]')) btn.addEventListener('click',()=>payInvoice(btn.dataset.payInvoice));
 }
@@ -68,16 +74,25 @@ function payInvoice(key){
  const [cardId,month]=key.split('|');
  const card=cards.find(c=>c.id===cardId);
  const invItems=installments.filter(i=>i.invoice_due_on.slice(0,7)===month && purchases.some(p=>p.id===i.purchase_id&&p.card_id===cardId));
- const total=invItems.reduce((s,i)=>s+Math.round(Number(i.amount)*100),0)/100;
- if(!card||!invItems.length){setStatus('Fatura não encontrada.');return;}
+ const totalCents=invItems.reduce((s,i)=>s+Math.round(Number(i.amount)*100),0);
+ const paidCents=invoicePayments.filter(p=>p.card_id===cardId&&p.invoice_month.slice(0,7)===month)
+   .reduce((s,p)=>s+Math.round(Number(p.amount)*100),0);
+ const pendingCents=totalCents-paidCents;
+ if(!card||!invItems.length||pendingCents<=0){setStatus('Fatura quitada ou não encontrada.');return;}
  const owners=Object.entries(C.members).map(([id,name])=>`<option value="${escape(id)}">${escape(name)}</option>`).join('');
- const form=makeModal('Confirmar pagamento integral da fatura',
-  `<p class="cards-help">Cartão: <b>${escape(card.label)}</b> · Mês: <b>${escape(month)}</b><br>Valor integral: <b>${fmtMoney(total)}</b>. Só confirme se o dinheiro realmente saiu da conta.</p>`+
+ const form=makeModal('Registrar pagamento da fatura',
+  `<p class="cards-help">Cartão: <b>${escape(card.label)}</b> · Mês: <b>${escape(month)}</b><br>Total: ${fmtMoney(totalCents/100)} · Já pago: ${fmtMoney(paidCents/100)} · <b>Falta: ${fmtMoney(pendingCents/100)}</b></p>`+
   label('Quem efetivamente pagou?',`<select name="paid_by">${owners}</select>`)+
-  label('Data em que pagou',input('paid_on','date'))+
-  `<p class="cards-help">Cada parcela paga será incluída no extrato. As despesas comuns participarão do acerto familiar; despesas individuais não.</p>`,
+  label('Data do pagamento',input('paid_on','date'))+
+  label('Valor a pagar (R$)',input('amount','number',`min="0.01" max="${(pendingCents/100).toFixed(2)}" step="0.01" value="${(pendingCents/100).toFixed(2)}"`))+
+  `<p class="cards-help">O valor será distribuído proporcionalmente às parcelas desta fatura, preservando as classificações de despesas comuns ou individuais. Cada pagamento aparecerá no extrato pela data efetiva.</p>`,
   async f=>{
-   const {error}=await sb.rpc('pay_card_invoice',{p_card_id:cardId,p_invoice_month:month+'-01',p_paid_on:f.get('paid_on'),p_paid_by:f.get('paid_by')});
+   const amount=Number(f.get('amount'));
+   if(!Number.isFinite(amount)||amount<=0||Math.round(amount*100)>pendingCents)throw Error('Confira o valor do pagamento.');
+   const {error}=await sb.rpc('pay_card_invoice_partial',{
+     p_card_id:cardId,p_invoice_month:month+'-01',p_paid_on:f.get('paid_on'),
+     p_paid_by:f.get('paid_by'),p_amount:amount
+   });
    if(error)throw error;
    window.dispatchEvent(new Event('pfc:invoicePaid'));
   });
