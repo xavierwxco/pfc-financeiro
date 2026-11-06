@@ -1,5 +1,6 @@
 (()=>{'use strict';
 const C=window.PFC_CONFIG, sb=window.supabase.createClient(C.supabaseUrl,C.supabaseKey),$=id=>document.getElementById(id);
+window.PFC_SB=sb;
 let user=null, memberMap={}, tx=[], charts={};
 const brl=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n||0));
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -13,7 +14,7 @@ async function enter(u){user=u;try{
  memberMap={};(members||[]).forEach(m=>memberMap[m.user_id]=C.members[m.user_id]||'Membro');
  if(!memberMap[u.id])throw new Error('Este usuário não está vinculado ao PFC Família.');
  const name=memberMap[u.id];document.querySelector('.profile b').textContent=name;document.querySelector('.profile small').textContent=(members.find(m=>m.user_id===u.id)?.role==='admin'?'Administrador':'Membro');$('pfc-avatar').textContent=name.slice(0,1).toUpperCase();
- await load();visibility(true);render();
+ await load();visibility(true);render();window.dispatchEvent(new Event('pfc:ready'));
  }catch(e){console.error(e);await sb.auth.signOut();visibility(false);alertLogin(e.message||'Falha ao carregar dados.');}}
 async function load(){
  const {data,error}=await sb.from('transactions').select('id,description,category,transaction_date,type,amount,person_user_id,expense_scope,payment_method').eq('household_id',C.householdId).order('transaction_date',{ascending:false});if(error)throw error;
