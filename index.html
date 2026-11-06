@@ -65,14 +65,28 @@
             <div><small>Pago por Talita</small><strong id="talitaPaid">R$ 0,00</strong></div>
           </div>
           <div class="settlement-result" id="settlementResult"><span>Acerto equilibrado</span><strong>Não há valores pendentes.</strong></div>
-          <p class="settlement-note">Despesas individuais não entram na divisão. O responsável informado no lançamento é considerado quem efetivamente pagou.</p>
+          <div class="settlement-note">Transferências de acerto registradas: <strong id="settlementsApplied">R$ 0,00</strong></div><p class="settlement-note">Despesas individuais não entram na divisão. O responsável informado no lançamento é considerado quem efetivamente pagou.</p>
+        </article>
+        <article class="panel settlement-panel">
+          <div class="panel-head"><div><h2>Registrar transferência de acerto</h2><p>Não é despesa nova: apenas reduz ou ajusta a dívida pendente</p></div></div>
+          <form id="settlementForm" class="settlement-form">
+            <label>Quem transferiu<select id="settlementFrom" required></select></label>
+            <label>Quem recebeu<select id="settlementTo" required></select></label>
+            <label>Valor (R$)<input id="settlementAmount" type="number" min="0.01" step="0.01" required></label>
+            <label>Data do pagamento<input id="settlementPaidOn" type="date" required></label>
+            <label>Mês a que se refere<input id="settlementTargetMonth" type="month" required></label>
+            <button class="primary-btn" id="settlementSubmit" type="submit">Registrar acerto</button>
+          </form><p id="settlementMessage" role="status" class="cards-help"></p>
+        </article>
+        <article class="panel settlement-list"><div class="panel-head"><div><h2>Transferências realizadas</h2><p>Valores pagos entre Xavier e Talita, separados das despesas</p></div></div>
+          <div class="table-scroll"><table><thead><tr><th>DATA</th><th>QUEM PAGOU</th><th>QUEM RECEBEU</th><th>MÊS REF.</th><th class="right">VALOR</th></tr></thead><tbody id="settlementsRows"></tbody></table></div>
         </article>
         <article class="panel settlement-list"><div class="panel-head"><div><h2>Despesas comuns consideradas</h2><p>Confira os lançamentos que compõem o acerto.</p></div><button class="outline-btn" data-go="transactions">Ver lançamentos</button></div>
           <div class="table-scroll"><table><thead><tr><th>DESCRIÇÃO</th><th>DATA</th><th>QUEM PAGOU</th><th class="right">VALOR</th></tr></thead><tbody id="commonRows"></tbody></table></div>
         </article>
       </section>
       <section class="view" id="view-cards">
-  <div class="section-intro"><h2>Cartões e faturas previstas</h2><p>Cadastre cartões, registre compras e veja a distribuição das parcelas. O pagamento das faturas será integrado ao extrato na próxima etapa.</p></div>
+  <div class="section-intro"><h2>Cartões e faturas</h2><p>Compras previstas e pagamento integral de fatura com identificação de quem pagou.</p></div>
   <article class="panel cards-main">
     <div class="panel-head"><div><h2>Meus cartões da família</h2><p>Limite, titular, fechamento e vencimento</p></div><button class="primary-btn" id="addCardBtn" type="button">＋ Cadastrar cartão</button></div>
     <p id="cardsStatus" class="cards-help" role="status"></p>
@@ -83,10 +97,10 @@
     <div class="table-scroll"><table><thead><tr><th>COMPRA</th><th>CARTÃO</th><th>DATA</th><th>PARCELAS</th><th>TIPO</th><th class="right">VALOR TOTAL</th></tr></thead><tbody id="cardPurchaseRows"></tbody></table></div>
   </article>
   <article class="panel cards-main">
-    <div class="panel-head"><div><h2>Faturas previstas</h2><p>Valores por cartão e mês de vencimento; não equivalem a faturas pagas</p></div></div>
-    <div class="table-scroll"><table><thead><tr><th>CARTÃO</th><th>VENCIMENTO</th><th>PARCELAS</th><th class="right">TOTAL PREVISTO</th></tr></thead><tbody id="invoiceRows"></tbody></table></div>
+    <div class="panel-head"><div><h2>Faturas</h2><p>Pague integralmente cada fatura apenas quando o débito tiver ocorrido de verdade.</p></div></div>
+    <div class="table-scroll"><table><thead><tr><th>CARTÃO</th><th>VENCIMENTO</th><th>PARCELAS</th><th class="right">TOTAL</th><th>SITUAÇÃO / AÇÃO</th></tr></thead><tbody id="invoiceRows"></tbody></table></div>
   </article>
-  <div class="cards-warning">Atenção: esta versão não registra o pagamento de faturas e não inclui compras do cartão no dashboard nem no acerto 50/50. Isso evita contabilizar uma compra antes de saber quem efetivamente pagou a fatura.</div>
+  <div class="cards-warning">Faturas previstas não entram no extrato nem no acerto. Quando você confirma o pagamento integral, cada parcela paga vira uma despesa no extrato, atribuída ao pagador e respeitando o tipo comum/individual. Não registre novamente o mesmo pagamento em Lançamentos.</div>
 </section>
       <section class="view" id="view-recurring"><article class="panel"><div class="panel-head"><div><h2>Despesas recorrentes</h2><p>Contas fixas e lançamentos programados.</p></div><button class="primary-btn" id="newRecurring">＋ Nova recorrência</button></div><div class="empty-state"><div class="empty-icon">↻</div><b>Organize suas contas fixas</b><p>Cadastre despesas mensais, anuais ou em outra frequência. Elas poderão gerar lançamentos automaticamente.</p></div></article></section>
       <section class="view" id="view-reports"><div class="section-intro"><h2>Relatórios financeiros</h2><p>Acompanhe a evolução mensal, categorias e cartões.</p></div><div class="metric-grid"><article class="metric-card"><span>Maior categoria</span><strong>—</strong><small class="muted">Aguardando lançamentos</small></article><article class="metric-card"><span>Média mensal de despesas</span><strong>—</strong><small class="muted">Aguardando lançamentos</small></article><article class="metric-card"><span>Economia no período</span><strong>—</strong><small class="muted">Calculada com dados reais</small></article></div><article class="panel"><div class="panel-head"><div><h2>Resumo mensal</h2><p>Comparativo de receitas e despesas.</p></div><button class="outline-btn" id="exportCsv2">↓ Exportar dados</button></div><div class="chart-wrap report-chart"><canvas id="reportChart"></canvas></div></article></section>
