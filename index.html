@@ -86,7 +86,7 @@
         </article>
       </section>
       <section class="view" id="view-cards">
-  <div class="section-intro"><h2>Cartões e faturas</h2><p>Compras previstas e pagamento integral de fatura com identificação de quem pagou.</p></div>
+  <div class="section-intro"><h2>Cartões e faturas</h2><p>Compras previstas, pagamentos integrais ou parciais e identificação de quem pagou.</p></div>
   <article class="panel cards-main">
     <div class="panel-head"><div><h2>Meus cartões da família</h2><p>Limite, titular, fechamento e vencimento</p></div><button class="primary-btn" id="addCardBtn" type="button">＋ Cadastrar cartão</button></div>
     <p id="cardsStatus" class="cards-help" role="status"></p>
@@ -97,13 +97,25 @@
     <div class="table-scroll"><table><thead><tr><th>COMPRA</th><th>CARTÃO</th><th>DATA</th><th>PARCELAS</th><th>TIPO</th><th class="right">VALOR TOTAL</th></tr></thead><tbody id="cardPurchaseRows"></tbody></table></div>
   </article>
   <article class="panel cards-main">
-    <div class="panel-head"><div><h2>Faturas</h2><p>Pague integralmente cada fatura apenas quando o débito tiver ocorrido de verdade.</p></div></div>
+    <div class="panel-head"><div><h2>Faturas</h2><p>Registre pagamentos integrais ou parciais apenas quando o débito tiver ocorrido de verdade.</p></div></div>
     <div class="table-scroll"><table><thead><tr><th>CARTÃO</th><th>VENCIMENTO</th><th>PARCELAS</th><th class="right">TOTAL</th><th>SITUAÇÃO / AÇÃO</th></tr></thead><tbody id="invoiceRows"></tbody></table></div>
   </article>
-  <div class="cards-warning">Faturas previstas não entram no extrato nem no acerto. Quando você confirma o pagamento integral, cada parcela paga vira uma despesa no extrato, atribuída ao pagador e respeitando o tipo comum/individual. Não registre novamente o mesmo pagamento em Lançamentos.</div>
+  <div class="cards-warning">Faturas previstas não entram no extrato nem no acerto. Quando você confirma um pagamento, o valor efetivamente pago vira despesa no extrato, atribuída ao pagador e respeitando o tipo comum/individual. Não registre novamente o mesmo pagamento em Lançamentos.</div>
 </section>
       <section class="view" id="view-recurring"><article class="panel"><div class="panel-head"><div><h2>Despesas recorrentes</h2><p>Contas fixas e lançamentos programados.</p></div><button class="primary-btn" id="newRecurring">＋ Nova recorrência</button></div><div class="empty-state"><div class="empty-icon">↻</div><b>Organize suas contas fixas</b><p>Cadastre despesas mensais, anuais ou em outra frequência. Elas poderão gerar lançamentos automaticamente.</p></div></article></section>
-      <section class="view" id="view-reports"><div class="section-intro"><h2>Relatórios financeiros</h2><p>Acompanhe a evolução mensal, categorias e cartões.</p></div><div class="metric-grid"><article class="metric-card"><span>Maior categoria</span><strong>—</strong><small class="muted">Aguardando lançamentos</small></article><article class="metric-card"><span>Média mensal de despesas</span><strong>—</strong><small class="muted">Aguardando lançamentos</small></article><article class="metric-card"><span>Economia no período</span><strong>—</strong><small class="muted">Calculada com dados reais</small></article></div><article class="panel"><div class="panel-head"><div><h2>Resumo mensal</h2><p>Comparativo de receitas e despesas.</p></div><button class="outline-btn" id="exportCsv2">↓ Exportar dados</button></div><div class="chart-wrap report-chart"><canvas id="reportChart"></canvas></div></article></section>
+      <section class="view" id="view-reports">
+  <div class="section-intro"><h2>Relatórios financeiros e acerto familiar</h2><p>Resumo dos 12 meses, com receitas, despesas efetivamente pagas, transferências e saldo do acerto.</p></div>
+  <article class="panel" style="margin-bottom:16px">
+    <div class="panel-head"><div><h2>Resumo anual da família</h2><p>Escolha o ano para comparar JAN a DEZ. Transferências de acerto não são despesas.</p></div><div class="head-actions"><select id="reportYear" aria-label="Ano do relatório"></select><button type="button" class="outline-btn" id="exportReportCsv">↓ Exportar resumo CSV</button></div></div>
+    <div class="metric-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <article class="metric-card"><span>Receitas do ano</span><strong id="reportIncome">R$ 0,00</strong></article>
+      <article class="metric-card"><span>Despesas pagas do ano</span><strong id="reportExpenses">R$ 0,00</strong></article>
+      <article class="metric-card"><span>Saldo receitas − despesas</span><strong id="reportBalance">R$ 0,00</strong></article>
+    </div>
+    <div class="table-scroll"><table><thead><tr><th>MÊS</th><th class="right">RECEITAS</th><th class="right">DESPESAS</th><th class="right">COMUNS</th><th class="right">XAVIER PAGOU (COMUNS)</th><th class="right">TALITA PAGOU (COMUNS)</th><th class="right">TRANSFERÊNCIAS</th><th class="right">SALDO DO ACERTO¹</th></tr></thead><tbody id="reportMonthlyRows"></tbody></table></div>
+    <p class="settlement-note">¹ Saldo positivo: Talita deve a Xavier; negativo: Xavier deve a Talita. Cada mês considera as despesas pagas naquele mês e as transferências vinculadas ao respectivo mês de referência. Os valores do acerto são resultados mensais, não movimentações adicionais.</p>
+  </article>
+</section>
       <section class="view" id="view-categories"><article class="panel"><div class="panel-head"><div><h2>Categorias</h2><p>Cadastros importados da estrutura da planilha.</p></div></div><div class="category-pills"><span>Moradia</span><span>Comunicação</span><span>Alimentação</span><span>Saúde</span><span>Vestuário</span><span>Transporte</span><span>Educação</span><span>Lazer</span><span>Outros</span></div></article></section>
       <section class="view" id="view-settings"><article class="panel settings-panel"><div><h2>Importar planilha existente</h2><p>Selecione a cópia Excel revisada do PFC. A leitura acontece no seu navegador; o arquivo não é enviado nesta prévia.</p><label class="upload-btn">Selecionar arquivo Excel<input type="file" id="workbookInput" accept=".xlsx,.xls" hidden></label><p id="importStatus" class="import-status">Aguardando arquivo .xlsx</p></div><div class="settings-divider"></div><div><h2>Conexão Supabase</h2><p>Login individual e sincronização dos lançamentos da família.</p><span class="status-pill">Conectado após autenticação</span></div></article></section>
     </section>
@@ -111,5 +123,5 @@
   </main>
 </div>
 <div class="modal-backdrop" id="modal"><form class="modal" id="transactionForm"><div class="modal-head"><div><h2>Novo lançamento</h2><p>Adicione uma movimentação financeira.</p></div><button type="button" class="close-btn" id="closeModal">×</button></div><label>Descrição<input required name="description" placeholder="Ex.: Supermercado" /></label><div class="form-row"><label>Tipo<select name="type"><option value="expense">Despesa</option><option value="income">Receita</option></select></label><label>Valor (R$)<input required name="amount" type="number" min="0.01" step="0.01" placeholder="0,00" /></label></div><div class="form-row"><label>Categoria<select name="category"><option>Moradia</option><option>Alimentação</option><option>Transporte</option><option>Saúde</option><option>Educação</option><option>Lazer</option><option>Outros</option></select></label><label>Data<input required name="date" type="date" /></label></div><div class="form-row"><label>Quem pagou<select name="owner"><option>Xavier</option><option>Talita</option></select></label><label>Classificação<select name="expenseScope"><option value="common">Despesa comum (50/50)</option><option value="individual">Despesa individual</option></select></label></div><div class="modal-actions"><button type="button" class="outline-btn" id="cancelModal">Cancelar</button><button class="primary-btn" type="submit">Salvar lançamento</button></div></form></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="app.js"></script><script src="cards.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="app.js"></script><script src="cards.js"></script><script src="reports.js"></script>
 </body></html>
