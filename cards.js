@@ -11,7 +11,7 @@ const iso=(y,m,d)=>`${y}-${two(m+1)}-${two(d)}`;
 const monthEnd=(y,m)=>new Date(y,m+1,0).getDate();
 const safeDay=(y,m,day)=>Math.min(day,monthEnd(y,m));
 const shiftMonth=(y,m,count)=>{const d=new Date(y,m+count,1);return [d.getFullYear(),d.getMonth()]};
-let cards=[], purchases=[], installments=[], currentUser=null;
+let cards=[], purchases=[], installments=[], invoicePayments=[], currentUser=null;
 
 // Primeiro fechamento igual ou posterior à compra. A data de vencimento será
 // a primeira ocorrência do dia escolhido estritamente após o fechamento.
@@ -37,10 +37,11 @@ async function fetchAll(){
  const results=await Promise.all([
   sb.from('credit_cards').select('id,label,owner_user_id,closing_day,due_day,credit_limit,active').eq('household_id',C.householdId).order('label'),
   sb.from('card_purchases').select('id,card_id,description,category,purchased_on,total_amount,installment_count,expense_scope').eq('household_id',C.householdId).order('purchased_on',{ascending:false}),
-  sb.from('card_installments').select('id,purchase_id,installment_number,amount,invoice_due_on').eq('household_id',C.householdId).order('invoice_due_on')
+  sb.from('card_installments').select('id,purchase_id,installment_number,amount,invoice_due_on').eq('household_id',C.householdId).order('invoice_due_on'),
+  sb.from('invoice_payments').select('id,card_id,invoice_month,amount,paid_on,paid_by').eq('household_id',C.householdId)
  ]);
  for(const r of results) if(r.error) throw r.error;
- [cards,purchases,installments]=results.map(r=>r.data||[]);
+ [cards,purchases,installments,invoicePayments]=results.map(r=>r.data||[]);
  render();
 }
 function render(){
@@ -55,8 +56,34 @@ function render(){
  el('cardPurchaseRows').innerHTML=purchases.map(p=>`<tr><td>${escape(p.description)}</td><td>${escape(cardMap.get(p.card_id)?.label||'Cartão')}</td><td>${brDate(p.purchased_on)}</td><td>${p.installment_count}x</td><td>${p.expense_scope==='common'?'Comum':'Individual'}</td><td class="right">${fmtMoney(p.total_amount)}</td></tr>`).join('')||'<tr><td colspan="6">Nenhuma compra cadastrada.</td></tr>';
  const purchaseMap=new Map(purchases.map(p=>[p.id,p]));const grouped=new Map();
  for(const inst of installments){const purchase=purchaseMap.get(inst.purchase_id);if(!purchase)continue;const card=cardMap.get(purchase.card_id);if(!card)continue;const key=card.id+'|'+inst.invoice_due_on.slice(0,7);let v=grouped.get(key);if(!v){v={label:card.label,due:inst.invoice_due_on,amount:0,count:0};grouped.set(key,v)}v.amount+=Number(inst.amount);v.count++;if(inst.invoice_due_on<v.due)v.due=inst.invoice_due_on}
- el('invoiceRows').innerHTML=[...grouped.values()].sort((a,b)=>a.due.localeCompare(b.due)).map(v=>`<tr><td>${escape(v.label)}</td><td>${brDate(v.due)}</td><td>${v.count}</td><td class="right">${fmtMoney(v.amount)}</td></tr>`).join('')||'<tr><td colspan="4">Nenhuma fatura prevista.</td></tr>';
+ const paidMap=new Map(invoicePayments.map(p=>[p.card_id+'|'+p.invoice_month.slice(0,7),p]));
+ el('invoiceRows').innerHTML=[...grouped.entries()].sort((a,b)=>a[1].due.localeCompare(b[1].due)).map(([key,v])=>{
+  const paid=paidMap.get(key),cardId=key.split('|')[0],month=key.split('|')[1];
+  return `<tr><td>${escape(v.label)}</td><td>${brDate(v.due)}</td><td>${v.count}</td><td class="right">${fmtMoney(v.amount)}</td><td>${paid?`<strong>Pago em ${brDate(paid.paid_on)}</strong><small style="display:block">Por ${escape(labelOwner(paid.paid_by))}</small>`:`<button class="outline-btn" data-pay-invoice="${cardId}|${month}">Registrar pagamento</button>`}</td></tr>`;
+ }).join('')||'<tr><td colspan="5">Nenhuma fatura prevista.</td></tr>';
+ for(const btn of el('invoiceRows').querySelectorAll('[data-pay-invoice]')) btn.addEventListener('click',()=>payInvoice(btn.dataset.payInvoice));
 }
+
+function payInvoice(key){
+ const [cardId,month]=key.split('|');
+ const card=cards.find(c=>c.id===cardId);
+ const invItems=installments.filter(i=>i.invoice_due_on.slice(0,7)===month && purchases.some(p=>p.id===i.purchase_id&&p.card_id===cardId));
+ const total=invItems.reduce((s,i)=>s+Math.round(Number(i.amount)*100),0)/100;
+ if(!card||!invItems.length){setStatus('Fatura não encontrada.');return;}
+ const owners=Object.entries(C.members).map(([id,name])=>`<option value="${escape(id)}">${escape(name)}</option>`).join('');
+ const form=makeModal('Confirmar pagamento integral da fatura',
+  `<p class="cards-help">Cartão: <b>${escape(card.label)}</b> · Mês: <b>${escape(month)}</b><br>Valor integral: <b>${fmtMoney(total)}</b>. Só confirme se o dinheiro realmente saiu da conta.</p>`+
+  label('Quem efetivamente pagou?',`<select name="paid_by">${owners}</select>`)+
+  label('Data em que pagou',input('paid_on','date'))+
+  `<p class="cards-help">Cada parcela paga será incluída no extrato. As despesas comuns participarão do acerto familiar; despesas individuais não.</p>`,
+  async f=>{
+   const {error}=await sb.rpc('pay_card_invoice',{p_card_id:cardId,p_invoice_month:month+'-01',p_paid_on:f.get('paid_on'),p_paid_by:f.get('paid_by')});
+   if(error)throw error;
+   window.dispatchEvent(new Event('pfc:invoicePaid'));
+  });
+ form.elements.paid_on.value=new Date().toLocaleDateString('en-CA');
+}
+
 function makeModal(title,fields,onSubmit){
  const bg=document.createElement('div');bg.className='card-modal-bg open';
  bg.innerHTML=`<form class="card-modal"><h2>${escape(title)}</h2>${fields}<p class="cards-help" role="alert" data-error></p><div class="card-modal-actions"><button class="outline-btn" type="button" data-cancel>Cancelar</button><button class="primary-btn" type="submit">Salvar</button></div></form>`;
