@@ -67,23 +67,35 @@ form.addEventListener('submit',async e=>{
   if(!uid||old.created_by!==uid)throw new Error('Somente quem cadastrou o lançamento pode editá-lo.');
   const update={description:val('description').value.trim(),amount:Number(val('amount').value),transaction_date:val('transaction_date').value,type:val('type').value,expense_scope:val('type').value==='income'?'individual':val('expense_scope').value,category:val('category').value.trim(),person_user_id:val('person_user_id').value};
   if(!update.description||!update.category||!Number.isFinite(update.amount)||update.amount<=0)throw new Error('Confira os campos antes de salvar.');
-  // A restrição de autoria existe também no banco (RLS), não apenas na tela.
-  let req=sb.from('transactions').update(update).eq('id',id).eq('household_id',C.householdId).eq('created_by',uid);
-  // Comparação otimista: compara a versão lida, sem transformar NULL em uma data inventada.
+  // A permissão de autoria continua sendo validada pelo RLS do Supabase.
+  // Não fazer uma segunda leitura como condição para considerar o UPDATE salvo:
+  // a resposta do UPDATE ... RETURNING já comprova a escrita realizada.
+  let req=sb.from('transactions').update(update)
+   .eq('id',id).eq('household_id',C.householdId).eq('created_by',uid);
   if(old.updated_at)req=req.eq('updated_at',old.updated_at);
   else req=req.is('updated_at',null);
   const saved=await req.select('id,description,amount,transaction_date,person_user_id,updated_at');
   if(saved.error)throw saved.error;
-  if(!saved.data?.length)throw new Error('Nenhuma linha foi atualizada. O lançamento pode ter mudado desde a leitura; clique em Atualizar lista e tente novamente.');
-  const verify=await sb.from('transactions').select('id,description,amount,transaction_date').eq('id',id).eq('household_id',C.householdId).single();
-  if(verify.error)throw verify.error;
-  const changed=verify.data;
-  if(changed.description!==update.description||Number(changed.amount)!==update.amount||changed.transaction_date!==update.transaction_date)
-   throw new Error('O banco não confirmou o novo valor. Não tente novamente antes de verificar o lançamento.');
-  close();await refresh();
-  // O app principal já escuta este evento para recarregar os totais do extrato e acerto.
+  if(saved.data?.length!==1)throw new Error('Nenhuma linha atualizada. Atualize a lista antes de tentar uma nova alteração.');
+  const row=saved.data[0];
+  // Verifique apenas os dados que o próprio UPDATE retornou, sem uma segunda requisição.
+  const cents=n=>Math.round(Number(n)*100);
+  if(row.description!==update.description||cents(row.amount)!==cents(update.amount)||row.transaction_date!==update.transaction_date)
+   throw new Error('Resposta inconsistente do UPDATE. Confira o lançamento no banco antes de tentar novamente.');
+  close();
+  // Histórico é conferido separadamente: sua ausência não desfaz um UPDATE confirmado.
+  await refresh();
+  const audit=await sb.from('transaction_edit_history')
+   .select('id').eq('household_id',C.householdId).eq('transaction_id',id)
+   .order('edited_at',{ascending:false}).limit(1);
+  if(audit.error){
+   $('editMessage').textContent='Valor salvo no Supabase, mas não foi possível conferir a auditoria: '+audit.error.message;
+  }else if(!audit.data?.length){
+   $('editMessage').textContent='Valor salvo no Supabase. ATENÇÃO: não foi encontrado registro de auditoria para este lançamento. Não faça outra edição antes de verificar o gatilho.';
+  }else{
+   $('editMessage').textContent='Valor salvo no Supabase e auditoria encontrada. Lista atualizada.';
+  }
   window.dispatchEvent(new Event('pfc:invoicePaid'));
-  $('editMessage').textContent='Alteração salva e confirmada no Supabase. Histórico e valores atualizados.';
  }catch(err){console.error('PFC: falha ao salvar correção',err);$('editError').textContent='Não foi possível salvar: '+(err.message||String(err));}
  finally{button.disabled=false;}
 });
