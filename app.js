@@ -18,7 +18,7 @@ async function enter(u){user=u;try{
  }catch(e){console.error(e);await sb.auth.signOut();visibility(false);alertLogin(e.message||'Falha ao carregar dados.');}}
 async function load(){
  const {data,error}=await sb.from('transactions').select('id,description,category,transaction_date,type,amount,person_user_id,expense_scope,payment_method').eq('household_id',C.householdId).order('transaction_date',{ascending:false});if(error)throw error;
- const tr=await sb.from('settlements').select('id,from_user_id,to_user_id,amount,paid_on,settlement_period,note').eq('household_id',C.householdId).order('paid_on',{ascending:false});if(tr.error)throw tr.error;transfers=tr.data||[];
+ const tr=await sb.from('settlements').select('id,from_user_id,to_user_id,amount,paid_on,settlement_period,note,created_by,cancelled_at,cancelled_by,cancel_reason').eq('household_id',C.householdId).order('paid_on',{ascending:false});if(tr.error)throw tr.error;transfers=tr.data||[];
  tx=(data||[]).map(t=>({id:t.id,owner:C.members[t.person_user_id]||'Membro',type:t.type,description:t.description,category:t.category||'Outros',date:t.transaction_date,amount:Number(t.amount),expenseScope:t.expense_scope||'individual',account:t.payment_method||'Conta / cartão'}));
  window.PFC_REPORT_DATA={tx,transfers};
 }
@@ -30,7 +30,7 @@ function visibleTransactions(){const m=$('monthFilter').value;return m==='all'?t
 function renderSettlement(){
  const period=$('settlementPeriod').value,selected=$('settlementMonth').value;
  const rows=tx.filter(t=>t.type==='expense'&&t.expenseScope==='common'&&(period==='all'||t.date.slice(0,7)===selected));
- const pay=transfers.filter(t=>period==='all'||t.settlement_period?.slice(0,7)===selected);
+ const pay=transfers.filter(t=>!t.cancelled_at&&(period==='all'||t.settlement_period?.slice(0,7)===selected));
  const totalCents=rows.reduce((s,t)=>s+Math.round(t.amount*100),0),xCents=rows.filter(t=>t.owner==='Xavier').reduce((s,t)=>s+Math.round(t.amount*100),0);
  const taCents=totalCents-xCents;
  const xId=Object.keys(C.members).find(k=>C.members[k]==='Xavier');
