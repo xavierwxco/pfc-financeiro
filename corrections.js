@@ -67,14 +67,18 @@ form.addEventListener('submit',async e=>{
   if(!uid||old.created_by!==uid)throw new Error('Somente quem cadastrou o lançamento pode editá-lo.');
   const update={description:val('description').value.trim(),amount:Number(val('amount').value),transaction_date:val('transaction_date').value,type:val('type').value,expense_scope:val('type').value==='income'?'individual':val('expense_scope').value,category:val('category').value.trim(),person_user_id:val('person_user_id').value};
   if(!update.description||!update.category||!Number.isFinite(update.amount)||update.amount<=0)throw new Error('Confira os campos antes de salvar.');
+  const fields=['description','amount','transaction_date','type','expense_scope','category','person_user_id'];
+  const changed=fields.some(k=>k==='amount'?Math.round(Number(old[k])*100)!==Math.round(Number(update[k])*100):String(old[k]??'')!==String(update[k]??''));
+  if(!changed)throw new Error('Nenhum campo foi alterado. Modifique algum valor antes de salvar.');
   // A permissão de autoria continua sendo validada pelo RLS do Supabase.
   // Não fazer uma segunda leitura como condição para considerar o UPDATE salvo:
   // a resposta do UPDATE ... RETURNING já comprova a escrita realizada.
-  let req=sb.from('transactions').update(update)
-   .eq('id',id).eq('household_id',C.householdId).eq('created_by',uid);
-  if(old.updated_at)req=req.eq('updated_at',old.updated_at);
-  else req=req.is('updated_at',null);
-  const saved=await req.select('id,description,amount,transaction_date,person_user_id,updated_at');
+  // Evitar comparar timestamps serializados por JavaScript/REST em precisões diferentes.
+  // Identidade, autoria e proteção de faturas seguem validadas pelo banco (RLS + triggers).
+  const saved=await sb.from('transactions').update(update)
+   .eq('id',id).eq('household_id',C.householdId).eq('created_by',uid)
+   .is('card_installment_id',null).is('invoice_payment_allocation_id',null)
+   .select('id,description,amount,transaction_date,person_user_id,updated_at');
   if(saved.error)throw saved.error;
   if(saved.data?.length!==1)throw new Error('Nenhuma linha atualizada. Atualize a lista antes de tentar uma nova alteração.');
   const row=saved.data[0];
