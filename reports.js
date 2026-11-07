@@ -17,7 +17,7 @@ function getRows(year){
   const total=common.reduce((s,t)=>s+cents(t.amount),0);
   const x=common.filter(t=>t.owner==='Xavier').reduce((s,t)=>s+cents(t.amount),0);
   const t=total-x;
-  const payments=transfers.filter(p=>p.settlement_period?.slice(0,7)===month);
+  const payments=transfers.filter(p=>!p.cancelled_at&&p.settlement_period?.slice(0,7)===month);
   const tToX=payments.filter(p=>p.from_user_id===idT&&p.to_user_id===idX).reduce((s,p)=>s+cents(p.amount),0);
   const xToT=payments.filter(p=>p.from_user_id===idX&&p.to_user_id===idT).reduce((s,p)=>s+cents(p.amount),0);
   return {label,month,incoming,expenses,total,x,t,transferred:tToX+xToT,due:(x-t)/2-tToX+xToT};
