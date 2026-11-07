@@ -86,7 +86,22 @@ form.addEventListener('submit',async e=>{
   const cents=n=>Math.round(Number(n)*100);
   if(row.description!==update.description||cents(row.amount)!==cents(update.amount)||row.transaction_date!==update.transaction_date)
    throw new Error('Resposta inconsistente do UPDATE. Confira o lançamento no banco antes de tentar novamente.');
+  // Reflete imediatamente a resposta confirmada do banco na linha editada.
+  const ix=manual.findIndex(t=>t.id===id);
+  if(ix>=0)manual[ix]={...manual[ix],...update,...row};
+  const tr=$('editRows').querySelector(`[data-edit-id="${id}"]`)?.closest('tr');
+  if(tr){
+   const cells=tr.querySelectorAll('td');
+   if(cells.length>=5){
+    cells[0].textContent=row.transaction_date;
+    cells[1].textContent=row.description;
+    cells[3].textContent=users[row.person_user_id]||'Membro';
+    cells[4].textContent=brl(row.amount);
+   }
+  }
   close();
+  // Atualiza dashboard, extrato e acerto independentemente do histórico.
+  window.dispatchEvent(new Event('pfc:invoicePaid'));
   // Histórico é conferido separadamente: sua ausência não desfaz um UPDATE confirmado.
   await refresh();
   const audit=await sb.from('transaction_edit_history')
@@ -99,7 +114,6 @@ form.addEventListener('submit',async e=>{
   }else{
    $('editMessage').textContent='Valor salvo no Supabase e auditoria encontrada. Lista atualizada.';
   }
-  window.dispatchEvent(new Event('pfc:invoicePaid'));
  }catch(err){console.error('PFC: falha ao salvar correção',err);$('editError').textContent='Não foi possível salvar: '+(err.message||String(err));}
  finally{button.disabled=false;}
 });
