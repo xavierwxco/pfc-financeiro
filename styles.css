@@ -428,3 +428,14 @@ footer{
 #periodFilterControl[hidden]{display:none!important}
 #periodFilterControl{display:flex;align-items:center}
 #periodFilterControl select{min-height:42px}
+
+/* Gerenciamento de cartões — edição, desativação e exclusão segura */
+#view-cards .pfc-card-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap;max-width:100%}
+#view-cards .pfc-card-actions button{min-height:36px;border-radius:10px;padding:8px 11px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
+#view-cards .pfc-edit-btn{background:#e9f0ff;border-color:#d8e4ff;color:#265fc0}
+#view-cards .pfc-edit-btn:hover{background:#dce8ff}
+#view-cards .pfc-delete-btn{background:#fff;border-color:#e8dce0;color:#a64c60}
+#view-cards .pfc-delete-btn:hover:not(:disabled){background:#fff1f4}
+#view-cards .pfc-delete-btn:disabled{opacity:.4;cursor:not-allowed}
+.card-modal .pfc-edit-hint{color:#64748b;font-size:12px;line-height:1.5;margin:14px 0}
+@media(max-width:700px){#view-cards .pfc-card-footer{flex-wrap:wrap}#view-cards .pfc-card-actions{justify-content:flex-start}}
