@@ -20,9 +20,18 @@ async function enter(u){user=u;try{
  await load();visibility(true);render();showView('dashboard');window.dispatchEvent(new Event('pfc:ready'));
  }catch(e){console.error(e);await sb.auth.signOut();visibility(false);alertLogin(e.message||'Falha ao carregar dados.');}}
 async function load(){
- const {data,error}=await sb.from('transactions').select('id,description,category,transaction_date,type,amount,person_user_id,expense_scope,payment_method').eq('household_id',C.householdId).order('transaction_date',{ascending:false});if(error)throw error;
+ const {data,error}=await sb.from('transactions').select('id,description,category,transaction_date,type,amount,person_user_id,expense_scope,payment_method,invoice_payment_allocation_id').eq('household_id',C.householdId).order('transaction_date',{ascending:false});if(error)throw error;
  const tr=await sb.from('settlements').select('id,from_user_id,to_user_id,amount,paid_on,settlement_period,note,created_by,cancelled_at,cancelled_by,cancel_reason').eq('household_id',C.householdId).order('paid_on',{ascending:false});if(tr.error)throw tr.error;transfers=tr.data||[];
- tx=(data||[]).map(t=>({id:t.id,owner:C.members[t.person_user_id]||'Membro',type:t.type,description:t.description,category:t.category||'Outros',date:t.transaction_date,amount:Number(t.amount),expenseScope:t.expense_scope||'individual',account:t.payment_method||'Conta / cartão'}));
+ // Estornos auditados da versão 4.3: mantemos as linhas no banco, mas não
+ // contamos no extrato e nos cálculos lançamentos ligados a pagamentos estornados.
+ const [reversalsResult,allocResult]=await Promise.all([
+  sb.from('invoice_payment_reversals').select('invoice_payment_id').eq('household_id',C.householdId),
+  sb.from('invoice_payment_allocations').select('id,invoice_payment_id').eq('household_id',C.householdId)
+ ]);
+ if(reversalsResult.error)throw reversalsResult.error;if(allocResult.error)throw allocResult.error;
+ const reversedPayments=new Set((reversalsResult.data||[]).map(v=>v.invoice_payment_id));
+ const voidAllocations=new Set((allocResult.data||[]).filter(a=>reversedPayments.has(a.invoice_payment_id)).map(a=>a.id));
+ tx=(data||[]).filter(t=>!t.invoice_payment_allocation_id||!voidAllocations.has(t.invoice_payment_allocation_id)).map(t=>({id:t.id,owner:C.members[t.person_user_id]||'Membro',type:t.type,description:t.description,category:t.category||'Outros',date:t.transaction_date,amount:Number(t.amount),expenseScope:t.expense_scope||'individual',account:t.payment_method||'Conta / cartão'}));
  window.PFC_REPORT_DATA={tx,transfers};
 }
 async function save(t){const payerId=Object.entries(C.members).find(([,name])=>name===t.owner)?.[0];if(!payerId)throw new Error('Responsável não reconhecido.');const payload={household_id:C.householdId,created_by:user.id,person_user_id:payerId,description:t.description,category:t.category,transaction_date:t.date,type:t.type,amount:t.amount,expense_scope:t.type==='expense'?t.expenseScope:'individual',payment_method:'Conta corrente'};const {error}=await sb.from('transactions').insert(payload);if(error)throw error;await load();}
