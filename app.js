@@ -2,6 +2,9 @@
 const C=window.PFC_CONFIG, sb=window.supabase.createClient(C.supabaseUrl,C.supabaseKey),$=id=>document.getElementById(id);
 window.PFC_SB=sb;
 let user=null, memberMap={}, tx=[], transfers=[], charts={}, currentMemberName='';
+const currentMonth=String(new Date().getMonth()+1).padStart(2,'0');
+const periodSelections={dashboard:'all',transactions:currentMonth,extract:currentMonth};
+let activeView='dashboard';
 const brl=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n||0));
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=d=>new Date(d+'T12:00:00').toLocaleDateString('pt-BR');
@@ -14,7 +17,7 @@ async function enter(u){user=u;try{
  memberMap={};(members||[]).forEach(m=>memberMap[m.user_id]=C.members[m.user_id]||'Membro');
  if(!memberMap[u.id])throw new Error('Este usuário não está vinculado ao PFC Família.');
  const name=memberMap[u.id];currentMemberName=name;document.querySelector('.profile b').textContent=name;document.querySelector('.profile small').textContent=(members.find(m=>m.user_id===u.id)?.role==='admin'?'Administrador':'Membro');$('pfc-avatar').textContent=name.slice(0,1).toUpperCase(); if($('topUserName'))$('topUserName').textContent=name; if($('topUserRole'))$('topUserRole').textContent=(members.find(m=>m.user_id===u.id)?.role==='admin'?'Administrador':'Membro'); if($('topUserAvatar'))$('topUserAvatar').textContent=name.slice(0,1).toUpperCase();
- await load();visibility(true);render();window.dispatchEvent(new Event('pfc:ready'));
+ await load();visibility(true);render();showView('dashboard');window.dispatchEvent(new Event('pfc:ready'));
  }catch(e){console.error(e);await sb.auth.signOut();visibility(false);alertLogin(e.message||'Falha ao carregar dados.');}}
 async function load(){
  const {data,error}=await sb.from('transactions').select('id,description,category,transaction_date,type,amount,person_user_id,expense_scope,payment_method').eq('household_id',C.householdId).order('transaction_date',{ascending:false});if(error)throw error;
@@ -26,7 +29,7 @@ async function save(t){const payerId=Object.entries(C.members).find(([,name])=>n
 function tableRow(t,mode){let base=`<td><div class="desc-cell"><span class="transaction-icon">◇</span>${esc(t.description)}</div></td>`;let value=`<td class="right ${t.type==='income'?'amount-in':'amount-out'}">${t.type==='income'?'+':'−'} ${brl(t.amount)}</td>`;if(mode==='recent')return `<tr>${base}<td>${esc(t.category)}</td><td>${fmt(t.date)}</td><td>${esc(t.owner)}</td>${value}</tr>`;if(mode==='extract')return `<tr><td>${fmt(t.date)}</td>${base}<td>${esc(t.category)}</td><td>${esc(t.account)}</td>${value}</tr>`;return `<tr>${base}<td>${esc(t.type==='income'?'Receita':'Despesa')}</td><td>${esc(t.category)}</td><td>${fmt(t.date)}</td><td>${esc(t.owner)}</td>${value}</tr>`;}
 function visibleTransactions(){const m=$('monthFilter').value;return m==='all'?tx:tx.filter(t=>t.date.slice(5,7)===m&&t.date.slice(0,4)===String(new Date().getFullYear()));}
  function render(){const visible=visibleTransactions();const sorted=[...visible].sort((a,b)=>b.date.localeCompare(a.date));$('recentRows').innerHTML=sorted.slice(0,5).map(t=>tableRow(t,'recent')).join('')||'<tr><td colspan="5">Nenhum lançamento cadastrado.</td></tr>';$('allRows').innerHTML=sorted.map(t=>tableRow(t,'all')).join('')||'<tr><td colspan="6">Nenhum lançamento cadastrado.</td></tr>';$('extractRows').innerHTML=sorted.map(t=>tableRow(t,'extract')).join('')||'<tr><td colspan="5">Nenhum lançamento cadastrado.</td></tr>';
- const inc=visible.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0),out=visible.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);$('incomeTotal').textContent=brl(inc);$('expenseTotal').textContent=brl(out);$('balanceTotal').textContent=brl(inc-out);$('billsTotal').textContent='—';renderSettlement();updateCharts();showView(document.querySelector('.nav-item.active')?.dataset.view||'dashboard');window.dispatchEvent(new Event('pfc:reportsUpdated'));}
+ const inc=visible.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0),out=visible.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);$('incomeTotal').textContent=brl(inc);$('expenseTotal').textContent=brl(out);$('balanceTotal').textContent=brl(inc-out);$('billsTotal').textContent='—';renderSettlement();updateCharts();window.dispatchEvent(new Event('pfc:reportsUpdated'));}
 function renderSettlement(){
  const period=$('settlementPeriod').value,selected=$('settlementMonth').value;
  const rows=tx.filter(t=>t.type==='expense'&&t.expenseScope==='common'&&(period==='all'||t.date.slice(0,7)===selected));
@@ -56,48 +59,9 @@ async function recordSettlement(){
  const {error}=await sb.from('settlements').insert({household_id:C.householdId,from_user_id:from,to_user_id:to,amount,paid_on:paidOn,settlement_period:month+'-01',created_by:user.id});
  if(error)throw error;await load();render();
 }
-function updateCharts(){
- if(!window.Chart)return;
- const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
- const inc=Array(12).fill(0),out=Array(12).fill(0),cats={};
- tx.filter(t=>t.date.slice(0,4)===String(new Date().getFullYear())).forEach(t=>{
-   const d=new Date(t.date+'T12:00:00');
-   if(t.type==='income') inc[d.getMonth()]+=t.amount;
-   else{out[d.getMonth()]+=t.amount;cats[t.category]=(cats[t.category]||0)+t.amount;}
- });
- // A ordem, as cores e os percentuais devem ser os mesmos na rosca e na legenda.
- const ordered=Object.entries(cats).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
- const palette=['#4776d3','#20b486','#e8a15a','#a18ad7','#7aa2db','#d88fa7','#6fbdab','#8d9dbb','#b6a07c','#8f9ab5'];
- const colors=ordered.map((_,i)=>palette[i%palette.length]);
- const catTotal=ordered.reduce((a,[,b])=>a+b,0);
- if($('categoryTotal')) $('categoryTotal').textContent=brl(catTotal);
- if($('categoryLegend')) $('categoryLegend').innerHTML=ordered.map(([n,v],i)=>
-   `<div><i class="dot" style="background:${colors[i]}"></i><span>${esc(n)}</span><b>${catTotal?Math.round(v/catTotal*100):0}%</b></div>`
- ).join('')||'<div>Sem despesas registradas</div>';
- if(!charts.flow&&$('flowChart')) charts.flow=new Chart($('flowChart'),{
-   type:'bar',data:{labels:months,datasets:[{label:'Receitas',data:inc,backgroundColor:'#5b83d6'},{label:'Despesas',data:out,backgroundColor:'#e6a0a5'}]},
-   options:{responsive:true,maintainAspectRatio:false}
- });
- else if(charts.flow){charts.flow.data.datasets[0].data=inc;charts.flow.data.datasets[1].data=out;charts.flow.update();}
- if(!charts.cat&&$('categoryChart')) charts.cat=new Chart($('categoryChart'),{
-   type:'doughnut',data:{labels:ordered.map(([n])=>n),datasets:[{data:ordered.map(([,v])=>v),backgroundColor:colors,borderColor:'#fff',borderWidth:2}]},
-   options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:context=>`${context.label}: ${brl(context.parsed)}`}}}}
- });
- else if(charts.cat){
-   charts.cat.data.labels=ordered.map(([n])=>n);
-   charts.cat.data.datasets[0].data=ordered.map(([,v])=>v);
-   charts.cat.data.datasets[0].backgroundColor=colors;
-   charts.cat.options.plugins.legend.display=false;
-   charts.cat.update();
- }
- if(!charts.report&&$('reportChart')) charts.report=new Chart($('reportChart'),{
-   type:'line',data:{labels:months,datasets:[{label:'Saldo',data:inc.map((v,i)=>v-out[i]),borderColor:'#4776d3',fill:false}]},
-   options:{responsive:true,maintainAspectRatio:false}
- });
- else if(charts.report){charts.report.data.datasets[0].data=inc.map((v,i)=>v-out[i]);charts.report.update();}
-}
-function showView(n){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+n));document.querySelectorAll('.nav-item').forEach(a=>a.classList.toggle('active',a.dataset.view===n));const labels={dashboard:'Dashboard',transactions:'Lançamentos',extract:'Extrato',settlement:'Acerto de contas',cards:'Cartões e faturas',recurring:'Recorrentes',reports:'Relatórios',categories:'Categorias',settings:'Configurações'};const subs={dashboard:'Aqui está um panorama atualizado das finanças da família.',transactions:'Cadastre, acompanhe e corrija lançamentos manuais.',extract:'Consulte todas as movimentações em ordem contínua.',settlement:'Acompanhe quem pagou mais e os acertos entre Xavier e Talita.',cards:'Gerencie cartões, compras parceladas e pagamentos.',recurring:'Organize contas fixas e lançamentos programados.',reports:'Compare meses, totais e resultados do acerto familiar.',categories:'Veja e mantenha as categorias utilizadas nos lançamentos.',settings:'Configurações gerais do aplicativo e da importação.'};$('crumb').textContent=labels[n]||n;if($('pageTitle')) $('pageTitle').textContent=n==='dashboard'?`Olá, ${currentMemberName} 👋`:(labels[n]||n);if($('pageSubtitle')) $('pageSubtitle').textContent=subs[n]||'';if($('pageSectionBadge')) $('pageSectionBadge').textContent=n==='dashboard'?'VISÃO DA FAMÍLIA':'PFC · FINANCEIRA COMPLETA';if($('newTransactionBar')) $('newTransactionBar').style.display=n==='transactions'?'':'none';$('sidebar').classList.remove('open');if(n==='settlement')renderSettlement();}
-document.querySelectorAll('[data-view]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();showView(a.dataset.view)}));document.querySelectorAll('[data-go]').forEach(a=>a.addEventListener('click',()=>showView(a.dataset.go)));$('menuBtn').onclick=()=>$('sidebar').classList.toggle('open');$('settlementPeriod').addEventListener('change',()=>{ $('settlementMonth').disabled=$('settlementPeriod').value==='all';renderSettlement();});$('settlementMonth').value=[new Date().getFullYear(),String(new Date().getMonth()+1).padStart(2,'0')].join('-');$('settlementMonth').addEventListener('change',renderSettlement);$('monthFilter').addEventListener('change',render);
+function updateCharts(){if(!window.Chart)return;const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],inc=Array(12).fill(0),out=Array(12).fill(0),cats={};tx.filter(t=>t.date.slice(0,4)===String(new Date().getFullYear())).forEach(t=>{const d=new Date(t.date+'T12:00:00');if(t.type==='income')inc[d.getMonth()]+=t.amount;else{out[d.getMonth()]+=t.amount;cats[t.category]=(cats[t.category]||0)+t.amount;}});const catTotal=Object.values(cats).reduce((a,b)=>a+b,0);if($('categoryTotal'))$('categoryTotal').textContent=brl(catTotal);if($('categoryLegend'))$('categoryLegend').innerHTML=Object.entries(cats).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([n,v],i)=>`<div><i class="dot d${(i%4)+1}"></i><span>${esc(n)}</span><b>${catTotal?Math.round(v/catTotal*100):0}%</b></div>`).join('')||'<div>Sem despesas registradas</div>';if(!charts.flow&&$('flowChart'))charts.flow=new Chart($('flowChart'),{type:'bar',data:{labels:months,datasets:[{label:'Receitas',data:inc,backgroundColor:'#5b83d6'},{label:'Despesas',data:out,backgroundColor:'#e6a0a5'}]},options:{responsive:true,maintainAspectRatio:false}});else if(charts.flow){charts.flow.data.datasets[0].data=inc;charts.flow.data.datasets[1].data=out;charts.flow.update();}if(!charts.cat&&$('categoryChart'))charts.cat=new Chart($('categoryChart'),{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:['#4776d3','#20b486','#e8a15a','#a18ad7']}]},options:{responsive:true,maintainAspectRatio:false,cutout:'76%'}});else if(charts.cat){charts.cat.data.labels=Object.keys(cats);charts.cat.data.datasets[0].data=Object.values(cats);charts.cat.update();}if(!charts.report&&$('reportChart'))charts.report=new Chart($('reportChart'),{type:'line',data:{labels:months,datasets:[{label:'Saldo',data:inc.map((v,i)=>v-out[i]),borderColor:'#4776d3',fill:false}]},options:{responsive:true,maintainAspectRatio:false}});else if(charts.report){charts.report.data.datasets[0].data=inc.map((v,i)=>v-out[i]);charts.report.update();}}
+function showView(n){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+n));document.querySelectorAll('.nav-item').forEach(a=>a.classList.toggle('active',a.dataset.view===n));const labels={dashboard:'Dashboard',transactions:'Lançamentos',extract:'Extrato',settlement:'Acerto de contas',cards:'Cartões e faturas',recurring:'Recorrentes',reports:'Relatórios',categories:'Categorias',settings:'Configurações'};const subs={dashboard:'Aqui está um panorama atualizado das finanças da família.',transactions:'Cadastre, acompanhe e corrija lançamentos manuais.',extract:'Consulte todas as movimentações em ordem contínua.',settlement:'Acompanhe quem pagou mais e os acertos entre Xavier e Talita.',cards:'Gerencie cartões, compras parceladas e pagamentos.',recurring:'Organize contas fixas e lançamentos programados.',reports:'Compare meses, totais e resultados do acerto familiar.',categories:'Veja e mantenha as categorias utilizadas nos lançamentos.',settings:'Configurações gerais do aplicativo e da importação.'};$('crumb').textContent=labels[n]||n;if($('pageTitle')) $('pageTitle').textContent=n==='dashboard'?`Olá, ${currentMemberName} 👋`:(labels[n]||n);if($('pageSubtitle')) $('pageSubtitle').textContent=subs[n]||'';if($('pageSectionBadge')) $('pageSectionBadge').textContent=n==='dashboard'?'VISÃO DA FAMÍLIA':'PFC · FINANCEIRA COMPLETA';activeView=n;const showPeriod=['dashboard','transactions','extract'].includes(n);if($('periodFilterControl'))$('periodFilterControl').hidden=!showPeriod;if(showPeriod){$('monthFilter').value=periodSelections[n];render();}$('sidebar').classList.remove('open');if(n==='settlement')renderSettlement();}
+document.querySelectorAll('[data-view]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();showView(a.dataset.view)}));document.querySelectorAll('[data-go]').forEach(a=>a.addEventListener('click',()=>showView(a.dataset.go)));$('menuBtn').onclick=()=>$('sidebar').classList.toggle('open');$('settlementPeriod').addEventListener('change',()=>{ $('settlementMonth').disabled=$('settlementPeriod').value==='all';renderSettlement();});$('settlementMonth').value=[new Date().getFullYear(),String(new Date().getMonth()+1).padStart(2,'0')].join('-');$('settlementMonth').addEventListener('change',renderSettlement);$('monthFilter').addEventListener('change',()=>{periodSelections[activeView]=$('monthFilter').value;render();});
 $('settlementTargetMonth').value=$('settlementMonth').value;
 $('settlementPaidOn').value=new Date().toLocaleDateString('en-CA');
 for(const id of ['settlementFrom','settlementTo']) $(id).innerHTML=Object.entries(C.members).map(([uid,name])=>`<option value="${esc(uid)}">${esc(name)}</option>`).join('');
