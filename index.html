@@ -102,7 +102,49 @@
   </article>
   <div class="cards-warning">Faturas previstas não entram no extrato nem no acerto. Quando você confirma um pagamento, o valor efetivamente pago vira despesa no extrato, atribuída ao pagador e respeitando o tipo comum/individual. Não registre novamente o mesmo pagamento em Lançamentos.</div>
 </section>
-      <section class="view" id="view-recurring"><article class="panel"><div class="panel-head"><div><h2>Despesas recorrentes</h2><p>Contas fixas e lançamentos programados.</p></div><button class="primary-btn" id="newRecurring">＋ Nova recorrência</button></div><div class="empty-state"><div class="empty-icon">↻</div><b>Organize suas contas fixas</b><p>Cadastre despesas mensais, anuais ou em outra frequência. Elas poderão gerar lançamentos automaticamente.</p></div></article></section>
+      <section class="view" id="view-recurring">
+        <div class="section-intro"><h2>Contas fixas e despesas recorrentes</h2><p>Cadastre os vencimentos e confirme cada pagamento. Uma previsão não é uma despesa paga.</p></div>
+        <div class="rec-summary">
+          <article><small>Vencimentos em atraso (últimos 12 meses)</small><strong id="recurringOverdue">0</strong></article>
+          <article><small>Vencem hoje ou em até 5 dias</small><strong id="recurringUpcoming">0</strong></article>
+          <article><small>Total pendente em atraso</small><strong id="recurringDueTotal">R$ 0,00</strong></article>
+        </div>
+        <article class="panel rec-panel">
+          <div class="panel-head rec-head"><div><h2>Contas recorrentes</h2><p>Uma despesa por competência. O banco impede pagamentos duplicados.</p></div><button class="primary-btn" type="button" id="newRecurring">＋ Nova recorrência</button></div>
+          <div class="rec-toolbar"><label for="recurringPeriod">Mês de referência <input id="recurringPeriod" type="month"></label><strong id="recurringPeriodLabel"></strong><button class="outline-btn" type="button" id="recurringRefresh">Atualizar lista</button></div>
+          <div id="recurringList" aria-live="polite"><p>Carregando contas recorrentes...</p></div>
+          <p id="recurringMessage" role="status" class="cards-help"></p>
+        </article>
+        <article class="panel rec-editor" id="recurringEditor" hidden>
+          <h2 id="recurringFormTitle">Nova conta recorrente</h2><p class="rec-hint">Mensal ou anual. Edite quando o limite ou vencimento mudar; pagamentos anteriores não são refeitos.</p>
+          <form id="recurringForm">
+            <input type="hidden" name="recurringId">
+            <div class="rec-fields">
+              <label>Descrição<input name="description" maxlength="120" required placeholder="Ex.: Condomínio"></label>
+              <label>Valor previsto (R$)<input name="amount" type="number" step="0.01" min="0.01" required></label>
+              <label>Categoria<select name="category"><option>Moradia</option><option>Alimentação</option><option>Transporte</option><option>Saúde</option><option>Educação</option><option>Lazer</option><option>Comunicação</option><option>Vestuário</option><option>Outros</option></select></label>
+              <label>Quem costuma pagar<select name="payer" required></select></label>
+              <label>Tipo de despesa<select name="expenseScope"><option value="common">Comum — divisão 50/50</option><option value="individual">Individual</option></select></label>
+              <label>Frequência<select name="frequency"><option value="monthly">Mensal</option><option value="yearly">Anual</option></select></label>
+              <label>Dia de vencimento<input name="dueDay" type="number" min="1" max="31" required value="10"></label>
+              <label>Mês inicial<input name="startMonth" type="month" required></label>
+            </div>
+            <div class="modal-actions"><button type="button" class="outline-btn" id="recurringCancelEdit">Cancelar</button><button class="primary-btn" type="submit">Salvar conta</button></div>
+          </form>
+        </article>
+        <article class="panel rec-editor" id="recurringPaymentEditor" hidden>
+          <h2>Confirmar pagamento da conta fixa</h2><p class="rec-hint" id="recurringPaymentSummary"></p>
+          <form id="recurringPaymentForm">
+            <input name="recurringId" type="hidden">
+            <div class="rec-fields">
+              <label>Data efetiva do pagamento<input name="paidOn" type="date" required></label>
+              <label>Quem efetivamente pagou<select name="paidBy" required></select></label>
+            </div>
+            <div class="modal-actions"><button type="button" class="outline-btn" id="recurringCancelPayment">Cancelar</button><button class="primary-btn" type="submit">Confirmar e lançar no extrato</button></div>
+          </form>
+        </article>
+        <p class="rec-footnote">Somente quem cadastrou a conta pode editá-la ou desativá-la. Ambos podem visualizar e registrar um pagamento real. Para contas com vencimento em dias 29, 30 ou 31, usa-se o último dia do mês quando necessário. As previsões não entram no extrato nem no acerto até a confirmação do pagamento.</p>
+      </section>
       <section class="view" id="view-reports">
   <div class="section-intro"><h2>Relatórios financeiros e acerto familiar</h2><p>Resumo dos 12 meses, com receitas, despesas efetivamente pagas, transferências e saldo do acerto.</p></div>
   <article class="panel" style="margin-bottom:16px">
@@ -123,5 +165,5 @@
   </main>
 </div>
 <div class="modal-backdrop" id="modal"><form class="modal" id="transactionForm"><div class="modal-head"><div><h2>Novo lançamento</h2><p>Adicione uma movimentação financeira.</p></div><button type="button" class="close-btn" id="closeModal">×</button></div><label>Descrição<input required name="description" placeholder="Ex.: Supermercado" /></label><div class="form-row"><label>Tipo<select name="type"><option value="expense">Despesa</option><option value="income">Receita</option></select></label><label>Valor (R$)<input required name="amount" type="number" min="0.01" step="0.01" placeholder="0,00" /></label></div><div class="form-row"><label>Categoria<select name="category"><option>Moradia</option><option>Alimentação</option><option>Transporte</option><option>Saúde</option><option>Educação</option><option>Lazer</option><option>Outros</option></select></label><label>Data<input required name="date" type="date" /></label></div><div class="form-row"><label>Quem pagou<select name="owner"><option>Xavier</option><option>Talita</option></select></label><label>Classificação<select name="expenseScope"><option value="common">Despesa comum (50/50)</option><option value="individual">Despesa individual</option></select></label></div><div class="modal-actions"><button type="button" class="outline-btn" id="cancelModal">Cancelar</button><button class="primary-btn" type="submit">Salvar lançamento</button></div></form></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="app.js"></script><script src="cards.js"></script><script src="reports.js"></script><script src="corrections.js"></script><script src="settlement_cancel.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="app.js"></script><script src="cards.js"></script><script src="reports.js"></script><script src="corrections.js"></script><script src="settlement_cancel.js"></script><script src="recurring.js"></script>
 </body></html>
