@@ -463,3 +463,43 @@ footer{
 .pfc-dashboard-invoice-alert{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:18px;padding:15px 18px;background:#fff7ed;border:1px solid #ffedd5;border-radius:16px}
 .pfc-dashboard-invoice-alert strong{display:block;color:#9a3412;font-size:13px}.pfc-dashboard-invoice-alert small{display:block;color:#7c6b62;margin-top:4px;font-size:11px}
 @media(max-width:700px){.pfc-dashboard-invoice-alert{align-items:flex-start;flex-direction:column}}
+
+/* PFC 4.5 - Contas recorrentes */
+.rec-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:0 0 18px}
+.rec-summary article{background:#fff;border:1px solid #e5ebf3;border-radius:16px;padding:18px;box-shadow:0 10px 25px rgba(20,37,72,.05)}
+.rec-summary small{display:block;color:#667085;font-size:11px;line-height:1.5;min-height:32px}
+.rec-summary strong{display:block;font:800 24px Manrope;margin-top:8px;color:#182b46}
+.rec-panel{margin-bottom:16px}
+.rec-head{align-items:center}
+.rec-toolbar{display:flex;gap:14px;align-items:end;flex-wrap:wrap;margin-bottom:16px;border-bottom:1px solid #e7edf5;padding-bottom:16px}
+.rec-toolbar label{font-size:11px;font-weight:700;color:#667085;display:grid;gap:5px}
+.rec-toolbar input,.rec-fields input,.rec-fields select{font:12px 'DM Sans';border:1px solid #dce4ee;border-radius:10px;padding:11px;color:#344054;background:#fff;min-height:42px;max-width:100%}
+.rec-toolbar strong{color:#344054;text-transform:capitalize;margin-bottom:10px}
+.rec-toolbar button{margin-left:auto}
+.rec-item{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 4px;border-bottom:1px solid #eef1f6}
+.rec-item:last-child{border-bottom:0}
+.rec-main{min-width:0;flex:1}
+.rec-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rec-top strong{font:700 14px Manrope}
+.rec-meta{color:#69768a;font-size:11px;line-height:1.8;margin-top:5px}
+.rec-right{text-align:right;display:grid;gap:8px;justify-items:end}
+.rec-right>strong{font:800 17px Manrope}
+.rec-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.rec-action{min-height:34px;padding:8px 11px;font-size:11px}
+.rec-badge{display:inline-block;border-radius:30px;padding:6px 9px;font-size:10px;font-weight:700}
+.rec-paid{background:#e5f7ee;color:#157655}
+.rec-late{background:#fff1f1;color:#b64043}
+.rec-today{background:#fff3dc;color:#935d14}
+.rec-future{background:#ecf2ff;color:#355db0}
+.rec-off{background:#f0f2f5;color:#7b8493}
+.rec-due,.rec-paid-note{color:#7b8798;font-size:10px}
+.rec-editor{margin:16px 0}
+.rec-editor[hidden]{display:none!important}
+.rec-editor h2{font:700 16px Manrope}
+.rec-hint,.rec-footnote,.rec-empty{font-size:12px;line-height:1.65;color:#667085}
+.rec-footnote{margin:12px 2px 24px}
+.rec-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}
+.rec-fields label{display:grid;gap:6px;color:#475467;font-weight:600;font-size:11px}
+.rec-fields input,.rec-fields select{width:100%}
+@media(max-width:850px){.rec-summary{grid-template-columns:1fr 1fr}.rec-item{align-items:flex-start;flex-direction:column}.rec-right{text-align:left;justify-items:start}.rec-actions{justify-content:flex-start}}
+@media(max-width:550px){.rec-summary{grid-template-columns:1fr}.rec-fields{grid-template-columns:1fr}.rec-toolbar button{margin-left:0}}
