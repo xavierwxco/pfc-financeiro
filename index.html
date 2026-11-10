@@ -39,6 +39,7 @@
     <section class="content">
       <div class="page-head"><div><p class="eyebrow" id="pageSectionBadge">VISÃO DA FAMÍLIA</p><h1 id="pageTitle">Olá, Xavier 👋</h1><p class="subhead" id="pageSubtitle">Aqui está um panorama atualizado das finanças da família.</p></div><div class="head-actions"><div id="periodFilterControl"><select id="monthFilter" aria-label="Mês"><option value="all">Ano inteiro</option><option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option><option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option><option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option></select></div></div></div>
       <section class="view active" id="view-dashboard">
+        <div id="pfcInvoiceDashboardAlert" class="pfc-dashboard-invoice-alert" role="status" style="display:none"></div>
         <div class="metric-grid">
           <article class="metric-card"><div class="metric-top"><span>Receitas</span><span class="metric-icon green">↗</span></div><strong id="incomeTotal">R$ 12.450,00</strong><small class="positive">Entradas no período</small></article>
           <article class="metric-card"><div class="metric-top"><span>Despesas</span><span class="metric-icon red">↘</span></div><strong id="expenseTotal">R$ 7.284,50</strong><small class="muted">Saídas no período</small></article>
@@ -84,6 +85,7 @@
         </article>
       </section>
       <section class="view" id="view-cards">
+  <div id="pfcInvoiceAlerts" class="pfc-invoice-alerts" role="status" aria-live="polite"></div>
   <div class="section-intro"><h2>Cartões e faturas</h2><p>Compras previstas, pagamentos integrais ou parciais e identificação de quem pagou.</p></div>
   <article class="panel cards-main">
     <div class="panel-head"><div><h2>Meus cartões da família</h2><p>Limite, titular, fechamento e vencimento</p></div><button class="primary-btn" id="addCardBtn" type="button">＋ Cadastrar cartão</button></div>
