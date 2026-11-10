@@ -516,3 +516,42 @@ footer{
 .rec-reversal-fields textarea{width:100%;min-height:96px;border:1px solid #dce4ee;border-radius:10px;padding:12px;font:12px 'DM Sans',sans-serif;resize:vertical;color:#344054}
 .rec-danger{background:#b42335;border-color:#b42335}
 .rec-danger:hover{background:#961b2b}
+
+
+/* PFC 4.6 — linguagem visual unificada */
+:root{--bg:#f3f6fb;--navy:#101d36;--blue:#346bcb;--ink:#17263f;--line:#e3eaf4}
+body{background:#f3f6fb;letter-spacing:.01em}
+.sidebar{background:linear-gradient(168deg,#101d36,#132747 70%,#152b4f);box-shadow:8px 0 32px #10234012}
+.nav-item{min-height:46px;font-weight:600;letter-spacing:0}
+.nav-item.active{background:#315d9b55;box-shadow:inset 3px 0 #85b3ff}
+.content{max-width:1460px}.page-head{margin-bottom:25px}.page-head h1{font-size:27px;line-height:1.25}
+.panel,.metric-card,.rec-summary article{border:1px solid #e2eaf3;border-radius:18px;box-shadow:0 7px 23px #172e4e0a}
+.panel{padding:23px}.metric-card{padding:20px}.primary-btn,.outline-btn{border-radius:11px;min-height:40px}
+.primary-btn{background:#346bcb}.primary-btn:hover{background:#2456ae}
+input,select,textarea{accent-color:#346bcb}.panel h2{letter-spacing:-.02em}
+.view .panel+.panel{margin-top:16px}.view .panel-head{margin-bottom:18px}
+.p46-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px;align-items:start}
+.p46-panel{padding:25px}.p46-panel h2{font-size:17px;margin:0}.p46-panel h3{font-size:13px;color:#172b49}
+.p46-block-head{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.p46-block-head p{margin:6px 0 0;color:#68788e;font-size:12px;line-height:1.5}
+.p46-block-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:#e9f1ff;color:#2f64ba;font-size:22px;flex-shrink:0}
+.p46-panel label,.p46-editor label{display:grid;gap:7px;color:#50627c;font-size:12px;font-weight:700;margin:11px 0}
+.p46-panel input,.p46-panel select,.p46-editor input{padding:12px;border:1px solid #d9e3ef;border-radius:10px;background:#fff;color:#17263f;min-height:42px;width:100%;font:13px 'DM Sans'}
+.p46-panel input:disabled{background:#f3f6fa;color:#66788d}
+.p46-subsection{border-top:1px solid #eaf0f6;margin-top:22px;padding-top:15px}
+.p46-note{color:#6b7b91;line-height:1.65;font-size:12px;margin:12px 0}
+.p46-feedback{color:#2b745a;font-size:12px;line-height:1.5;min-height:18px}
+.p46-feedback.is-error{color:#b42335}.p46-system-line{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #eef2f7;font-size:12px}
+.p46-system-line b{color:#245fb8}.p46-tabs{display:flex;background:#f1f5fb;border:1px solid #e2e9f3;border-radius:12px;padding:5px;gap:5px;width:max-content;max-width:100%}
+.p46-tabs button{border:0;background:none;padding:10px 18px;border-radius:9px;cursor:pointer;color:#677991;font:700 12px 'DM Sans'}
+.p46-tabs button.is-selected{background:#fff;color:#285da9;box-shadow:0 2px 8px #142d4e15}
+.p46-category-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}
+.p46-category{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #e6edf5;border-radius:13px;padding:13px;background:#fbfcff}
+.p46-category.is-inactive{opacity:.55}.p46-category-title{font-weight:700;font-size:13px;overflow-wrap:anywhere}
+.p46-category small{display:block;color:#7b8aa0;font-size:10px;margin-top:4px}.p46-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.p46-actions button{font-size:11px;min-height:34px;padding:7px 10px}.p46-editor{max-width:620px}
+.p46-members{display:grid;gap:10px}.p46-member{border:1px solid #e5edf6;background:#fbfdff;border-radius:12px;padding:13px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.p46-member strong{font-size:13px}.p46-member small{display:block;font-size:11px;color:#687890;margin-top:4px}.p46-member select{max-width:160px}
+.p46-audit{max-height:190px;overflow:auto}.p46-audit div{border-bottom:1px solid #eef1f5;padding:10px 0;color:#51617a;font-size:11px}
+@media(max-width:1000px){.p46-settings-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.p46-category-list{grid-template-columns:1fr}.p46-panel{padding:17px}.p46-member{align-items:flex-start;flex-direction:column}.p46-tabs{width:100%}.p46-tabs button{flex:1}.panel{padding:16px}.page-head h1{font-size:23px}}
