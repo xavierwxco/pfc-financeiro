@@ -11,7 +11,7 @@ const iso=(y,m,d)=>`${y}-${two(m+1)}-${two(d)}`;
 const monthEnd=(y,m)=>new Date(y,m+1,0).getDate();
 const safeDay=(y,m,day)=>Math.min(day,monthEnd(y,m));
 const shiftMonth=(y,m,count)=>{const d=new Date(y,m+count,1);return [d.getFullYear(),d.getMonth()]};
-let cards=[], purchases=[], installments=[], invoicePayments=[], currentUser=null;
+let cards=[], purchases=[], installments=[], invoicePayments=[], paymentReversals=[], currentUser=null;
 
 // Primeiro fechamento igual ou posterior à compra. A data de vencimento será
 // a primeira ocorrência do dia escolhido estritamente após o fechamento.
@@ -38,10 +38,11 @@ async function fetchAll(){
   sb.from('credit_cards').select('id,label,owner_user_id,closing_day,due_day,credit_limit,active').eq('household_id',C.householdId).order('label'),
   sb.from('card_purchases').select('id,card_id,description,category,purchased_on,total_amount,installment_count,expense_scope').eq('household_id',C.householdId).order('purchased_on',{ascending:false}),
   sb.from('card_installments').select('id,purchase_id,installment_number,amount,invoice_due_on').eq('household_id',C.householdId).order('invoice_due_on'),
-  sb.from('invoice_payments').select('id,card_id,invoice_month,amount,paid_on,paid_by').eq('household_id',C.householdId)
+  sb.from('invoice_payments').select('id,card_id,invoice_month,amount,paid_on,paid_by,created_by').eq('household_id',C.householdId),
+  sb.from('invoice_payment_reversals').select('id,invoice_payment_id,reason,reversed_at,reversed_by').eq('household_id',C.householdId)
  ]);
  for(const r of results) if(r.error) throw r.error;
- [cards,purchases,installments,invoicePayments]=results.map(r=>r.data||[]);
+ [cards,purchases,installments,invoicePayments,paymentReversals]=results.map(r=>r.data||[]);
  render();
 }
 function render(){
@@ -99,19 +100,69 @@ function render(){
   v.items.push({description:purchase.description,number:Number(inst.installment_number),count:Number(purchase.installment_count),amount:Number(inst.amount)});
   if(inst.invoice_due_on<v.due)v.due=inst.invoice_due_on;
  }
+ const reversedByPayment=new Map(paymentReversals.map(r=>[r.invoice_payment_id,r]));
  const paidMap=new Map();
  for(const p of invoicePayments){const key=p.card_id+'|'+p.invoice_month.slice(0,7);
-  const entry=paidMap.get(key)||{amount:0,rows:[]};entry.amount+=Number(p.amount);entry.rows.push(p);paidMap.set(key,entry)}
- el('invoiceRows').innerHTML=[...grouped.entries()].sort((a,b)=>a[1].due.localeCompare(b[1].due)||a[1].label.localeCompare(b[1].label,'pt-BR')).map(([key,v])=>{
+  const entry=paidMap.get(key)||{amount:0,rows:[]};
+  if(!reversedByPayment.has(p.id))entry.amount+=Number(p.amount);
+  entry.rows.push(p);paidMap.set(key,entry)}
+ const invoiceEntries=[...grouped.entries()].sort((a,b)=>a[1].due.localeCompare(b[1].due)||a[1].label.localeCompare(b[1].label,'pt-BR'));
+ const now=new Date(),today=iso(now.getFullYear(),now.getMonth(),now.getDate());
+ const alerts=[];
+ for(const [key,v] of invoiceEntries){
+  const pending=Math.round(v.amount*100)-Math.round((paidMap.get(key)?.amount||0)*100);
+  if(pending<=0)continue;
+  const days=Math.round((asDate(v.due)-asDate(today))/86400000);
+  if(days<0)alerts.push({label:v.label,due:v.due,pending,days});
+  else if(days<=5)alerts.push({label:v.label,due:v.due,pending,days});
+ }
+ const dashAlert=el('pfcInvoiceDashboardAlert');
+ if(dashAlert){
+  const overdue=alerts.filter(a=>a.days<0),soon=alerts.filter(a=>a.days>=0);
+  if(alerts.length){
+   dashAlert.style.display='flex';
+   dashAlert.innerHTML=`<div><strong>⚠ ${overdue.length?`${overdue.length} ${overdue.length===1?'fatura vencida':'faturas vencidas'}`: `${soon.length} ${soon.length===1?'fatura próxima do vencimento':'faturas próximas do vencimento'}`}</strong><small>Verifique os saldos pendentes em Cartões e faturas.</small></div><button type="button" class="outline-btn" id="pfcGoCardsAlert">Ver faturas</button>`;
+   el('pfcGoCardsAlert').addEventListener('click',()=>document.querySelector('[data-view="cards"]')?.click());
+  }else{dashAlert.style.display='none';dashAlert.innerHTML=''}
+ }
+ const alertBox=el('pfcInvoiceAlerts');
+ if(alertBox){
+  const overdue=alerts.filter(a=>a.days<0).length,soon=alerts.length-overdue;
+  alertBox.innerHTML=alerts.length?`<div class="pfc-alert-heading"><span>⚠ ${overdue?`${overdue} ${overdue===1?'fatura vencida':'faturas vencidas'}`:''}${overdue&&soon?' · ':''}${soon?`${soon} ${soon===1?'próxima do vencimento':'próximas do vencimento'}`:''}</span><small>Somente faturas com saldo pendente</small></div><div class="pfc-alert-list">${alerts.sort((a,b)=>a.due.localeCompare(b.due)).map(a=>`<div class="pfc-alert-item ${a.days<0?'is-overdue':'is-soon'}"><div><strong>${escape(a.label)}</strong><small>Vencimento: ${brDate(a.due)} · ${a.days<0?`Vencida há ${-a.days} dia(s)`:a.days===0?'Vence hoje':`Vence em ${a.days} dia(s)`}</small></div><b>${fmtMoney(a.pending/100)}</b></div>`).join('')}</div>`:'<div class="pfc-alert-clear">✓ Nenhuma fatura vencida ou próxima do vencimento com saldo pendente.</div>';
+ }
+ el('invoiceRows').innerHTML=invoiceEntries.map(([key,v])=>{
   const paid=paidMap.get(key),cardId=key.split('|')[0],month=key.split('|')[1];
   const paidCents=Math.round((paid?.amount||0)*100),totalCents=Math.round(v.amount*100);
   const remainCents=Math.max(0,totalCents-paidCents);
   const status=remainCents===0?'<span class="pfc-invoice-status paid">Quitada</span>':paidCents>0?'<span class="pfc-invoice-status partial">Parcialmente paga</span>':'<span class="pfc-invoice-status open">Em aberto</span>';
   const action=remainCents>0?`<button type="button" class="primary-btn pfc-pay-btn" data-pay-invoice="${escape(cardId+'|'+month)}">＋ Registrar pagamento</button>`:'';
+  const history=(paid?.rows||[]).map(pay=>{
+   const reversal=reversedByPayment.get(pay.id);
+   const permission=pay.created_by===currentUser?.id;
+   return `<div class="pfc-payment-line"><div><b>${fmtMoney(pay.amount)}</b><small>${brDate(pay.paid_on)} · ${escape(labelOwner(pay.paid_by))}${reversal?' · ESTORNADO':''}</small>${reversal?`<small>Motivo: ${escape(reversal.reason)}</small>`:''}</div>${!reversal&&permission?`<button type="button" class="outline-btn pfc-reversal-btn" data-reverse-payment="${escape(pay.id)}">Estornar</button>`:''}</div>`;
+  }).join('');
   const details=v.items.map(i=>`<div class="pfc-invoice-part"><span class="pfc-invoice-part-number">${i.number}/${i.count}</span><span class="pfc-invoice-part-name" title="${escape(i.description)}">${escape(i.description)}</span></div>`).join('');
-  return `<tr class="pfc-invoice-row"><td><strong class="pfc-invoice-card">${escape(v.label)}</strong></td><td>${brDate(v.due)}</td><td><div class="pfc-invoice-parts">${details}</div><small class="pfc-invoice-count">${v.items.length} ${v.items.length===1?'parcela':'parcelas'} nesta fatura</small></td><td class="right pfc-invoice-amount">${fmtMoney(v.amount)}</td><td><div class="pfc-invoice-action">${status}<span class="pfc-invoice-paid">Pago: <b>${fmtMoney(paidCents/100)}</b></span><span class="pfc-invoice-due">Pendente: <b>${fmtMoney(remainCents/100)}</b></span>${action}</div></td></tr>`;
+  return `<tr class="pfc-invoice-row"><td><strong class="pfc-invoice-card">${escape(v.label)}</strong></td><td>${brDate(v.due)}</td><td><div class="pfc-invoice-parts">${details}</div><small class="pfc-invoice-count">${v.items.length} ${v.items.length===1?'parcela':'parcelas'} nesta fatura</small></td><td class="right pfc-invoice-amount">${fmtMoney(v.amount)}</td><td><div class="pfc-invoice-action">${status}<span class="pfc-invoice-paid">Pago: <b>${fmtMoney(paidCents/100)}</b></span><span class="pfc-invoice-due">Pendente: <b>${fmtMoney(remainCents/100)}</b></span>${action}${history?`<details class="pfc-payment-history"><summary>Histórico de pagamentos (${(paid?.rows||[]).length})</summary>${history}</details>`:''}</div></td></tr>`;
  }).join('')||'<tr><td colspan="5">Nenhuma fatura prevista.</td></tr>';
  for(const btn of el('invoiceRows').querySelectorAll('[data-pay-invoice]')) btn.addEventListener('click',()=>payInvoice(btn.dataset.payInvoice));
+ for(const btn of el('invoiceRows').querySelectorAll('[data-reverse-payment]')) btn.addEventListener('click',()=>reversePayment(btn.dataset.reversePayment));
+}
+
+function reversePayment(paymentId){
+ const payment=invoicePayments.find(p=>p.id===paymentId);
+ if(!payment||payment.created_by!==currentUser?.id){setStatus('Somente quem registrou o pagamento pode estornar.');return}
+ if(paymentReversals.some(r=>r.invoice_payment_id===paymentId)){setStatus('Pagamento já estornado.');return}
+ const form=makeModal('Estornar pagamento',
+  `<p class="cards-help">Pagamento de <b>${fmtMoney(payment.amount)}</b> em ${brDate(payment.paid_on)}.<br>Esta operação reabre o saldo da fatura e recalcula extrato e acerto. Não apaga o histórico.</p>`+
+  label('Motivo do estorno',`<textarea name="reason" rows="3" minlength="5" maxlength="500" required placeholder="Ex.: Pagamento registrado por engano"></textarea>`),
+  async f=>{
+   const reason=String(f.get('reason')||'').trim();if(reason.length<5)throw Error('Informe o motivo com pelo menos 5 caracteres.');
+   if(!window.confirm('Confirma o estorno deste pagamento? A ação ficará registrada no histórico.'))throw Error('Estorno cancelado.');
+   const {error}=await sb.rpc('reverse_card_invoice_payment',{p_payment_id:paymentId,p_reason:reason});
+   if(error)throw error;
+   window.dispatchEvent(new Event('pfc:invoicePaid'));
+  });
+ return form;
 }
 
 function payInvoice(key){
