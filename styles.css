@@ -503,3 +503,16 @@ footer{
 .rec-fields input,.rec-fields select{width:100%}
 @media(max-width:850px){.rec-summary{grid-template-columns:1fr 1fr}.rec-item{align-items:flex-start;flex-direction:column}.rec-right{text-align:left;justify-items:start}.rec-actions{justify-content:flex-start}}
 @media(max-width:550px){.rec-summary{grid-template-columns:1fr}.rec-fields{grid-template-columns:1fr}.rec-toolbar button{margin-left:0}}
+
+/* PFC 4.5.1 — Historico de pagamentos e estorno auditado */
+.rec-item{flex-wrap:wrap}
+.rec-history{flex:0 0 100%;min-width:0;margin:7px 0 0;border-top:1px solid #e9eef5;padding:9px 2px 0}
+.rec-history summary{cursor:pointer;font-size:11px;font-weight:700;color:#355db0;padding:4px 0}
+.rec-history-line{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 2px;border-top:1px solid #f0f3f8;color:#344054;font-size:11px}
+.rec-history-line small{display:block;color:#667085;margin-top:5px;line-height:1.5;overflow-wrap:anywhere}
+.rec-reverse-btn{color:#a63842;border-color:#f0cbd0}
+.rec-reverse-btn:hover{background:#fff1f2}
+.rec-reversal-fields{grid-template-columns:1fr}
+.rec-reversal-fields textarea{width:100%;min-height:96px;border:1px solid #dce4ee;border-radius:10px;padding:12px;font:12px 'DM Sans',sans-serif;resize:vertical;color:#344054}
+.rec-danger{background:#b42335;border-color:#b42335}
+.rec-danger:hover{background:#961b2b}
