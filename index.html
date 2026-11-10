@@ -143,7 +143,18 @@
             <div class="modal-actions"><button type="button" class="outline-btn" id="recurringCancelPayment">Cancelar</button><button class="primary-btn" type="submit">Confirmar e lançar no extrato</button></div>
           </form>
         </article>
-        <p class="rec-footnote">Somente quem cadastrou a conta pode editá-la ou desativá-la. Ambos podem visualizar e registrar um pagamento real. Para contas com vencimento em dias 29, 30 ou 31, usa-se o último dia do mês quando necessário. As previsões não entram no extrato nem no acerto até a confirmação do pagamento.</p>
+        <article class="panel rec-editor" id="recurringReversalEditor" hidden>
+          <h2>Estornar pagamento recorrente</h2>
+          <p class="rec-hint" id="recurringReversalSummary"></p>
+          <form id="recurringReversalForm">
+            <input type="hidden" name="paymentId">
+            <div class="rec-fields rec-reversal-fields">
+              <label>Motivo do estorno (obrigatório)<textarea name="reason" minlength="8" maxlength="500" rows="3" required placeholder="Ex.: pagamento lançado com valor incorreto"></textarea></label>
+            </div>
+            <div class="modal-actions"><button class="outline-btn" type="button" id="recurringCancelReversal">Cancelar</button><button class="primary-btn rec-danger" type="submit">Confirmar estorno auditado</button></div>
+          </form>
+        </article>
+        <p class="rec-footnote">Somente quem cadastrou a conta pode editá-la ou desativá-la. Ambos podem visualizar e registrar um pagamento real. Pagamentos estornados permanecem no histórico e não contam no acerto; transferências já feitas permanecem. Para contas com vencimento em dias 29, 30 ou 31, usa-se o último dia do mês quando necessário. As previsões não entram no extrato nem no acerto até a confirmação do pagamento.</p>
       </section>
       <section class="view" id="view-reports">
   <div class="section-intro"><h2>Relatórios financeiros e acerto familiar</h2><p>Resumo dos 12 meses, com receitas, despesas efetivamente pagas, transferências e saldo do acerto.</p></div>
