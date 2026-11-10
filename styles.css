@@ -555,3 +555,49 @@ input,select,textarea{accent-color:#346bcb}.panel h2{letter-spacing:-.02em}
 .p46-audit{max-height:190px;overflow:auto}.p46-audit div{border-bottom:1px solid #eef1f5;padding:10px 0;color:#51617a;font-size:11px}
 @media(max-width:1000px){.p46-settings-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.p46-category-list{grid-template-columns:1fr}.p46-panel{padding:17px}.p46-member{align-items:flex-start;flex-direction:column}.p46-tabs{width:100%}.p46-tabs button{flex:1}.panel{padding:16px}.page-head h1{font-size:23px}}
+
+/* PFC 4.6 — Legenda detalhada do gráfico por categoria */
+.category-panel .category-chart-layout .category-legend .pfc-cat-legend-item{
+  gap:7px;
+  flex-wrap:wrap;
+}
+.category-panel .category-chart-layout .category-legend .pfc-cat-top{
+  background:#f2f6fe;
+  border-color:#dae6f7;
+}
+.category-panel .category-chart-layout .pfc-cat-rank{
+  flex:0 0 auto;
+  padding:2px 5px;
+  border-radius:5px;
+  background:#e1eafa;
+  color:#315ca0;
+  font-size:10px;
+  font-weight:800;
+}
+.category-panel .category-chart-layout .category-legend .pfc-cat-name{
+  flex:1 1 95px;
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+.category-panel .category-chart-layout .pfc-cat-meta{
+  display:block;
+  margin-top:2px;
+  color:#8792a5;
+  font-size:10px;
+}
+.category-panel .category-chart-layout .category-legend .pfc-cat-value{
+  flex:0 1 auto;
+  color:#40536d;
+  font-size:11px;
+  font-weight:600;
+  white-space:nowrap;
+}
+.category-panel .category-chart-layout .category-legend .pfc-cat-legend-item b{
+  margin-left:0;
+  min-width:37px;
+  text-align:right;
+}
+@media(max-width:500px){
+  .category-panel .category-chart-layout .pfc-cat-legend-item{padding:9px 8px;}
+  .category-panel .category-chart-layout .category-legend .pfc-cat-value{font-size:10px;}
+}
