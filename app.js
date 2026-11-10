@@ -74,7 +74,111 @@ async function recordSettlement(){
  const {error}=await sb.from('settlements').insert({household_id:C.householdId,from_user_id:from,to_user_id:to,amount,paid_on:paidOn,settlement_period:month+'-01',created_by:user.id});
  if(error)throw error;await load();render();
 }
-function updateCharts(){if(!window.Chart)return;const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],inc=Array(12).fill(0),out=Array(12).fill(0),cats={};const fixedCategoryColors={'Moradia':'#ef4444','Comunicação':'#06b6d4','Alimentação':'#f59e0b','Saúde':'#10b981','Vestuário':'#8b5cf6','Transporte':'#3b82f6','Educação':'#a855f7','Lazer':'#ec4899','Pet':'#84cc16','pet':'#84cc16','Outros':'#64748b'};const fallbackPalette=['#2563eb','#dc2626','#16a34a','#d97706','#7c3aed','#db2777','#0891b2','#65a30d','#ea580c','#0f766e','#9333ea','#475569'];const getCategoryColor=name=>{if(fixedCategoryColors[name])return fixedCategoryColors[name];let hash=0;for(let i=0;i<String(name).length;i++)hash=(hash*31+String(name).charCodeAt(i))>>>0;return fallbackPalette[hash%fallbackPalette.length];};tx.filter(t=>t.date.slice(0,4)===String(new Date().getFullYear())).forEach(t=>{const d=new Date(t.date+'T12:00:00');if(t.type==='income')inc[d.getMonth()]+=t.amount;else{out[d.getMonth()]+=t.amount;cats[t.category]=(cats[t.category]||0)+t.amount;}});const sortedCats=Object.entries(cats).sort((a,b)=>b[1]-a[1]);const catLabels=sortedCats.map(([n])=>n);const catValues=sortedCats.map(([,v])=>v);const catColors=sortedCats.map(([n])=>getCategoryColor(n));const catTotal=catValues.reduce((a,b)=>a+b,0);if($('categoryTotal'))$('categoryTotal').textContent=brl(catTotal);if($('categoryLegend'))$('categoryLegend').innerHTML=sortedCats.slice(0,6).map(([n,v])=>`<div><i class="dot" style="background:${getCategoryColor(n)}"></i><span>${esc(n)}</span><b>${catTotal?Math.round(v/catTotal*100):0}%</b></div>`).join('')||'<div>Sem despesas registradas</div>';if(!charts.flow&&$('flowChart'))charts.flow=new Chart($('flowChart'),{type:'bar',data:{labels:months,datasets:[{label:'Receitas',data:inc,backgroundColor:'#5b83d6'},{label:'Despesas',data:out,backgroundColor:'#e6a0a5'}]},options:{responsive:true,maintainAspectRatio:false}});else if(charts.flow){charts.flow.data.datasets[0].data=inc;charts.flow.data.datasets[1].data=out;charts.flow.update();}if(!charts.cat&&$('categoryChart'))charts.cat=new Chart($('categoryChart'),{type:'doughnut',data:{labels:catLabels,datasets:[{data:catValues,backgroundColor:catColors,borderWidth:0,hoverOffset:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'76%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${brl(c.parsed)} (${catTotal?Math.round(c.parsed/catTotal*100):0}%)`}}}}});else if(charts.cat){charts.cat.data.labels=catLabels;charts.cat.data.datasets[0].data=catValues;charts.cat.data.datasets[0].backgroundColor=catColors;charts.cat.update();}if(!charts.report&&$('reportChart'))charts.report=new Chart($('reportChart'),{type:'line',data:{labels:months,datasets:[{label:'Saldo',data:inc.map((v,i)=>v-out[i]),borderColor:'#4776d3',fill:false}]},options:{responsive:true,maintainAspectRatio:false}});else if(charts.report){charts.report.data.datasets[0].data=inc.map((v,i)=>v-out[i]);charts.report.update();}}
+function updateCharts(){
+  if(!window.Chart)return;
+  const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const inc=Array(12).fill(0),out=Array(12).fill(0),cats={};
+  const fixedColors={
+    'moradia':'#e24d49','comunicação':'#0891b2','alimentação':'#ee963f',
+    'saúde':'#16a085','vestuário':'#8360ce','transporte':'#3876da',
+    'educação':'#ad62ca','lazer':'#db5192','pet':'#83a52d',
+    'outros':'#65758b'
+  };
+  const fallbackColors=['#c65d34','#316aa8','#45965f','#aa7243','#8260af',
+    '#bd4a65','#1b8d97','#857c38','#7d6696','#ab6669'];
+  const normalizeCategory=n=>String(n||'Outros').trim().toLocaleLowerCase('pt-BR');
+  tx.filter(t=>t.date.slice(0,4)===String(new Date().getFullYear())).forEach(t=>{
+    const d=new Date(t.date+'T12:00:00');
+    if(t.type==='income')inc[d.getMonth()]+=t.amount;
+    else{
+      out[d.getMonth()]+=t.amount;
+      const name=String(t.category||'Outros').trim()||'Outros';
+      cats[name]=(cats[name]||0)+t.amount;
+    }
+  });
+  const sortedCats=Object.entries(cats).filter(([,v])=>v>0)
+    .sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'pt-BR'));
+  const totalAll=Object.values(cats).reduce((a,b)=>a+b,0);
+  // Com mais de seis categorias, mostramos as cinco maiores e agrupamos as restantes.
+  // Nunca descartamos valores: o total do gráfico continua igual à soma de todas as despesas.
+  const shouldGroup=sortedCats.length>6;
+  const extra=shouldGroup?sortedCats.slice(5):[];
+  const visibleCats=shouldGroup?sortedCats.slice(0,5).concat([['Outras categorias',extra.reduce((s,[,v])=>s+v,0)]]):sortedCats;
+  const usedColors=new Set();
+  const colorByName={};
+  const pickColor=(name,idx)=>{
+    const normalized=normalizeCategory(name);
+    if(shouldGroup&&name==='Outras categorias')return '#64748b';
+    let color=fixedColors[normalized];
+    if(!color||usedColors.has(color)){
+      const palette=[...fallbackColors,'#b45c9a','#3c8d80','#b17e25','#6e72c5'];
+      color=palette.find(c=>!usedColors.has(c))||`hsl(${(idx*137.508)%360} 58% 47%)`;
+    }
+    usedColors.add(color);
+    return color;
+  };
+  // Reservar a cor cinza exclusivamente para a fatia agrupada.
+  if(shouldGroup)usedColors.add('#64748b');
+  visibleCats.forEach(([n],i)=>{colorByName[n]=pickColor(n,i);});
+  const catLabels=visibleCats.map(([n])=>n);
+  const catValues=visibleCats.map(([,v])=>v);
+  const catColors=catLabels.map(n=>colorByName[n]);
+  if($('categoryTotal'))$('categoryTotal').textContent=brl(totalAll);
+  if($('categoryLegend'))$('categoryLegend').innerHTML=visibleCats.map(([n,v],i)=>{
+    const percentage=totalAll?(v/totalAll*100).toLocaleString('pt-BR',{maximumFractionDigits:1,minimumFractionDigits:0}):'0';
+    const rank= i<3?`<span class="pfc-cat-rank">${i+1}º</span>`:'';
+    const detail=shouldGroup&&n==='Outras categorias'?`<small class="pfc-cat-meta">${extra.length} categorias agrupadas</small>`:'';
+    return `<div class="pfc-cat-legend-item${i<3?' pfc-cat-top':''}"><i class="dot" style="background:${colorByName[n]}"></i>${rank}<span class="pfc-cat-name">${esc(n)}${detail}</span><span class="pfc-cat-value">${brl(v)}</span><b>${percentage}%</b></div>`;
+  }).join('')||'<div>Sem despesas registradas</div>';
+  if(!charts.flow&&$('flowChart'))charts.flow=new Chart($('flowChart'),{
+    type:'bar',data:{labels:months,datasets:[
+      {label:'Receitas',data:inc,backgroundColor:'#5b83d6'},
+      {label:'Despesas',data:out,backgroundColor:'#e6a0a5'}]},
+    options:{responsive:true,maintainAspectRatio:false}
+  });
+  else if(charts.flow){
+    charts.flow.data.datasets[0].data=inc;
+    charts.flow.data.datasets[1].data=out;
+    charts.flow.update();
+  }
+  if(!charts.cat&&$('categoryChart'))charts.cat=new Chart($('categoryChart'),{
+    type:'doughnut',
+    data:{labels:catLabels,datasets:[{data:catValues,backgroundColor:catColors,borderWidth:0,hoverOffset:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'76%',
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:c=>{
+          const value=Number(c.parsed)||0;
+          const pct=totalAll?(value/totalAll*100).toLocaleString('pt-BR',{maximumFractionDigits:1}):'0';
+          return `${c.label}: ${brl(value)} (${pct}%)`;
+        },
+        afterLabel:c=>shouldGroup&&c.label==='Outras categorias'
+          ?extra.map(([name,value])=>`${name}: ${brl(value)}`):[]
+      }}}
+    }
+  });
+  else if(charts.cat){
+    charts.cat.data.labels=catLabels;
+    charts.cat.data.datasets[0].data=catValues;
+    charts.cat.data.datasets[0].backgroundColor=catColors;
+    charts.cat.options.plugins.tooltip.callbacks.label=c=>{
+      const value=Number(c.parsed)||0;
+      const pct=totalAll?(value/totalAll*100).toLocaleString('pt-BR',{maximumFractionDigits:1}):'0';
+      return `${c.label}: ${brl(value)} (${pct}%)`;
+    };
+    charts.cat.options.plugins.tooltip.callbacks.afterLabel=c=>shouldGroup&&c.label==='Outras categorias'
+      ?extra.map(([name,value])=>`${name}: ${brl(value)}`):[];
+    charts.cat.update();
+  }
+  if(!charts.report&&$('reportChart'))charts.report=new Chart($('reportChart'),{
+    type:'line',data:{labels:months,datasets:[
+      {label:'Saldo',data:inc.map((v,i)=>v-out[i]),borderColor:'#4776d3',fill:false}]},
+    options:{responsive:true,maintainAspectRatio:false}
+  });
+  else if(charts.report){
+    charts.report.data.datasets[0].data=inc.map((v,i)=>v-out[i]);
+    charts.report.update();
+  }
+}
 function showView(n){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+n));document.querySelectorAll('.nav-item').forEach(a=>a.classList.toggle('active',a.dataset.view===n));const labels={dashboard:'Dashboard',transactions:'Lançamentos',extract:'Extrato',settlement:'Acerto de contas',cards:'Cartões e faturas',recurring:'Recorrentes',reports:'Relatórios',categories:'Categorias',settings:'Configurações'};const subs={dashboard:'Aqui está um panorama atualizado das finanças da família.',transactions:'Cadastre, acompanhe e corrija lançamentos manuais.',extract:'Consulte todas as movimentações em ordem contínua.',settlement:'Acompanhe quem pagou mais e os acertos entre Xavier e Talita.',cards:'Gerencie cartões, compras parceladas e pagamentos.',recurring:'Organize contas fixas e lançamentos programados.',reports:'Compare meses, totais e resultados do acerto familiar.',categories:'Organize receitas e despesas sem perder o histórico.',settings:'Seu perfil, segurança, usuários e preferências do aplicativo.'};$('crumb').textContent=labels[n]||n;if($('pageTitle')) $('pageTitle').textContent=n==='dashboard'?`Olá, ${currentMemberName} 👋`:(labels[n]||n);if($('pageSubtitle')) $('pageSubtitle').textContent=subs[n]||'';if($('pageSectionBadge')) $('pageSectionBadge').textContent=n==='dashboard'?'VISÃO DA FAMÍLIA':'PFC · FINANCEIRA COMPLETA';activeView=n;const showPeriod=['dashboard','transactions','extract'].includes(n);if($('periodFilterControl'))$('periodFilterControl').hidden=!showPeriod;if(showPeriod){$('monthFilter').value=periodSelections[n];render();}$('sidebar').classList.remove('open');if(n==='settlement')renderSettlement();}
 document.querySelectorAll('[data-view]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();showView(a.dataset.view)}));document.querySelectorAll('[data-go]').forEach(a=>a.addEventListener('click',()=>showView(a.dataset.go)));$('menuBtn').onclick=()=>$('sidebar').classList.toggle('open');$('settlementPeriod').addEventListener('change',()=>{ $('settlementMonth').disabled=$('settlementPeriod').value==='all';renderSettlement();});$('settlementMonth').value=[new Date().getFullYear(),String(new Date().getMonth()+1).padStart(2,'0')].join('-');$('settlementMonth').addEventListener('change',renderSettlement);$('monthFilter').addEventListener('change',()=>{periodSelections[activeView]=$('monthFilter').value;render();});
 $('settlementTargetMonth').value=$('settlementMonth').value;
