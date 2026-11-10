@@ -439,3 +439,27 @@ footer{
 #view-cards .pfc-delete-btn:disabled{opacity:.4;cursor:not-allowed}
 .card-modal .pfc-edit-hint{color:#64748b;font-size:12px;line-height:1.5;margin:14px 0}
 @media(max-width:700px){#view-cards .pfc-card-footer{flex-wrap:wrap}#view-cards .pfc-card-actions{justify-content:flex-start}}
+
+/* PFC 4.3 — alertas e estornos de faturas */
+.pfc-invoice-alerts{margin:0 0 18px;border:1px solid #e6eaf1;border-radius:16px;background:#fff;padding:16px 18px;box-shadow:0 6px 22px #1018280a}
+.pfc-alert-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px;font-weight:750;color:#9a3412}
+.pfc-alert-heading small{color:#667085;font-weight:400}
+.pfc-alert-list{display:grid;gap:9px}
+.pfc-alert-item{display:flex;justify-content:space-between;align-items:center;gap:12px;border-radius:12px;padding:12px 14px;background:#fff7ed;border:1px solid #ffedd5}
+.pfc-alert-item.is-soon{background:#eff6ff;border-color:#dbeafe}
+.pfc-alert-item strong{display:block;font-size:13px;color:#344054}
+.pfc-alert-item small{display:block;font-size:11px;color:#667085;margin-top:4px}
+.pfc-alert-item>b{white-space:nowrap;color:#9a3412}
+.pfc-alert-item.is-soon>b{color:#2563eb}
+.pfc-alert-clear{color:#157d64;font-size:12px;font-weight:600}
+.pfc-payment-history{width:100%;border-top:1px solid #e8edf4;margin-top:8px;padding-top:10px}
+.pfc-payment-history summary{cursor:pointer;color:#315fbd;font-size:11px;font-weight:700}
+.pfc-payment-line{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #f0f2f5}
+.pfc-payment-line small{display:block;color:#667085;font-size:10px;margin-top:3px}
+.pfc-reversal-btn{color:#a33a30;border-color:#f1c8c5;min-height:32px;padding:6px 9px}
+.card-modal textarea{width:100%;margin-top:6px;border:1px solid #dfe3e9;border-radius:10px;padding:11px;font:12px 'DM Sans';resize:vertical}
+@media(max-width:700px){.pfc-alert-heading{align-items:flex-start;flex-direction:column}.pfc-alert-item{align-items:flex-start;flex-direction:column}}
+
+.pfc-dashboard-invoice-alert{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:18px;padding:15px 18px;background:#fff7ed;border:1px solid #ffedd5;border-radius:16px}
+.pfc-dashboard-invoice-alert strong{display:block;color:#9a3412;font-size:13px}.pfc-dashboard-invoice-alert small{display:block;color:#7c6b62;margin-top:4px;font-size:11px}
+@media(max-width:700px){.pfc-dashboard-invoice-alert{align-items:flex-start;flex-direction:column}}
