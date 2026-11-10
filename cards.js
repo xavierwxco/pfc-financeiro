@@ -61,7 +61,11 @@ function render(){
     </div>
     <div class="pfc-card-footer">
       <div><small>LIMITE CADASTRADO</small><strong>${c.credit_limit==null?'Não informado':fmtMoney(c.credit_limit)}</strong></div>
-      <button type="button" class="outline-btn pfc-toggle-btn" data-toggle-card="${escape(c.id)}">${c.active?'Desativar':'Reativar'}</button>
+      <div class="pfc-card-actions">
+        <button type="button" class="outline-btn pfc-edit-btn" data-edit-card="${escape(c.id)}">Editar</button>
+        <button type="button" class="outline-btn pfc-toggle-btn" data-toggle-card="${escape(c.id)}">${c.active?'Desativar':'Reativar'}</button>
+        <button type="button" class="outline-btn pfc-delete-btn" data-delete-card="${escape(c.id)}" ${purchases.some(p=>p.card_id===c.id)||invoicePayments.some(p=>p.card_id===c.id)?'disabled title="Cartão com histórico: use Desativar"':''}>Excluir</button>
+      </div>
     </div>
   </article>`).join('')||'<div class="card-empty">Nenhum cartão cadastrado.</div>';
  for(const button of list.querySelectorAll('[data-toggle-card]'))button.addEventListener('click',async()=>{
@@ -69,6 +73,8 @@ function render(){
   button.disabled=true;
   try{const {error}=await sb.from('credit_cards').update({active:!c.active}).eq('id',c.id).eq('household_id',C.householdId);if(error)throw error;await fetchAll();setStatus('Cartão atualizado.');}catch(e){setStatus('Não foi possível atualizar: '+e.message)}finally{button.disabled=false}
  });
+ for(const button of list.querySelectorAll('[data-edit-card]')) button.addEventListener('click',()=>editCard(button.dataset.editCard));
+ for(const button of list.querySelectorAll('[data-delete-card]')) button.addEventListener('click',()=>deleteUnusedCard(button.dataset.deleteCard));
  const cardMap=new Map(cards.map(c=>[c.id,c]));
  // Compras agrupadas pelo cartão, sem alterar registros no banco.
  const groupedPurchases=new Map();
@@ -155,6 +161,54 @@ function addCard(){
   const {error}=await sb.from('credit_cards').insert(payload);if(error)throw error;
  });return form;
 }
+function editCard(id){
+ const card=cards.find(c=>c.id===id);
+ if(!card){setStatus('Cartão não encontrado.');return}
+ const owners=Object.entries(C.members).map(([uid,name])=>`<option value="${escape(uid)}" ${uid===card.owner_user_id?'selected':''}>${escape(name)}</option>`).join('');
+ const form=makeModal('Editar cartão',
+  label('Nome do cartão',`<input name="label" type="text" maxlength="80" required value="${escape(card.label)}">`)+
+  label('Titular',`<select name="owner_user_id">${owners}</select>`)+
+  label('Dia de fechamento',`<input name="closing_day" type="number" min="1" max="31" required value="${Number(card.closing_day)}">`)+
+  label('Dia de vencimento',`<input name="due_day" type="number" min="1" max="31" required value="${Number(card.due_day)}">`)+
+  label('Limite (R$)',`<input name="credit_limit" type="number" min="0" step="0.01" placeholder="Não informado" value="${card.credit_limit==null?'':Number(card.credit_limit)}">`)+
+  '<p class="pfc-edit-hint">Alterações de fechamento e vencimento são aplicadas a compras futuras. Faturas e parcelas já geradas permanecem nas datas originais.</p>',
+  async f=>{
+   const labelText=String(f.get('label')||'').trim();
+   const closing=Number(f.get('closing_day')), due=Number(f.get('due_day'));
+   const rawLimit=String(f.get('credit_limit')||'').trim();
+   const limit=rawLimit===''?null:Number(rawLimit);
+   if(!labelText||!Number.isInteger(closing)||closing<1||closing>31||!Number.isInteger(due)||due<1||due>31||limit!==null&&(!Number.isFinite(limit)||limit<0))throw Error('Confira o nome, as datas e o limite.');
+   const payload={label:labelText,owner_user_id:f.get('owner_user_id'),closing_day:closing,due_day:due,credit_limit:limit};
+   const result=await sb.from('credit_cards').update(payload).eq('id',card.id).eq('household_id',C.householdId).select('id,label,owner_user_id,closing_day,due_day,credit_limit').maybeSingle();
+   if(result.error)throw result.error;
+   if(!result.data)throw Error('O banco não confirmou a alteração. Verifique a permissão de edição.');
+  });
+ return form;
+}
+async function deleteUnusedCard(id){
+ const card=cards.find(c=>c.id===id);
+ if(!card)return;
+ if(purchases.some(p=>p.card_id===id)||invoicePayments.some(p=>p.card_id===id)){
+   setStatus('Este cartão possui histórico financeiro. Use Desativar para preservar as compras e faturas.');return;
+ }
+ if(!window.confirm(`Excluir definitivamente o cartão "${card.label}"? Esta ação não pode ser desfeita. Para cartões com histórico, utilize Desativar.`))return;
+ const button=el('cardsList').querySelector(`[data-delete-card="${id}"]`);
+ if(button)button.disabled=true;
+ try{
+  // Confirmar no banco, além da verificação da interface.
+  const [p,paid]=await Promise.all([
+   sb.from('card_purchases').select('id').eq('household_id',C.householdId).eq('card_id',id).limit(1),
+   sb.from('invoice_payments').select('id').eq('household_id',C.householdId).eq('card_id',id).limit(1)
+  ]);
+  if(p.error)throw p.error;if(paid.error)throw paid.error;
+  if((p.data||[]).length||(paid.data||[]).length)throw Error('Este cartão agora possui compras ou pagamentos e não pode ser excluído. Use Desativar.');
+  const result=await sb.from('credit_cards').delete().eq('id',id).eq('household_id',C.householdId).select('id').maybeSingle();
+  if(result.error)throw result.error;
+  if(!result.data)throw Error('O banco não confirmou a exclusão. Confira as permissões.');
+  await fetchAll();setStatus('Cartão sem histórico excluído.');
+ }catch(e){setStatus('Não foi possível excluir: '+e.message);if(button&&button.isConnected)button.disabled=false}
+}
+
 function addPurchase(){
  const available=cards.filter(c=>c.active);
  if(!available.length){setStatus('Cadastre um cartão ativo antes de registrar compras.');return}
