@@ -38,7 +38,6 @@
     <header class="topbar"><button class="mobile-menu" id="menuBtn">☰</button><div class="breadcrumb">PFC <span>/</span> <b id="crumb">Dashboard</b></div><div class="top-actions"><div class="top-user"><span class="avatar avatar-blue" id="topUserAvatar">X</span><div><b id="topUserName">Xavier</b><small id="topUserRole">Administrador</small></div></div></div></header>
     <section class="content">
       <div class="page-head"><div><p class="eyebrow" id="pageSectionBadge">VISÃO DA FAMÍLIA</p><h1 id="pageTitle">Olá, Xavier 👋</h1><p class="subhead" id="pageSubtitle">Aqui está um panorama atualizado das finanças da família.</p></div><div class="head-actions"><select id="monthFilter" aria-label="Mês"><option value="all">Ano inteiro</option><option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option><option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option><option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option></select><button class="primary-btn" id="newTransactionBar" style="display:none">＋ Novo lançamento</button></div></div>
-      <div id="demoNotice" class="notice"><span>ⓘ</span><div><b>Dados da família</b><p>Os lançamentos exibidos são carregados do banco compartilhado e atualizados para Xavier e Talita.</p></div><button id="dismissNotice">×</button></div>
       <section class="view active" id="view-dashboard">
         <div class="metric-grid">
           <article class="metric-card"><div class="metric-top"><span>Receitas</span><span class="metric-icon green">↗</span></div><strong id="incomeTotal">R$ 12.450,00</strong><small class="positive">Entradas no período</small></article>
@@ -97,7 +96,7 @@
   </article>
   <article class="panel cards-main">
     <div class="panel-head"><div><h2>Faturas</h2><p>Registre pagamentos integrais ou parciais apenas quando o débito tiver ocorrido de verdade.</p></div></div>
-    <div class="table-scroll"><table><thead><tr><th>CARTÃO</th><th>VENCIMENTO</th><th>PARCELAS</th><th class="right">TOTAL</th><th>SITUAÇÃO / AÇÃO</th></tr></thead><tbody id="invoiceRows"></tbody></table></div>
+    <div class="table-scroll"><table><thead><tr><th>CARTÃO</th><th>VENCIMENTO</th><th>PARCELAS DA FATURA</th><th class="right">TOTAL</th><th>SITUAÇÃO / AÇÃO</th></tr></thead><tbody id="invoiceRows"></tbody></table></div>
   </article>
   <div class="cards-warning">Faturas previstas não entram no extrato nem no acerto. Quando você confirma um pagamento, o valor efetivamente pago vira despesa no extrato, atribuída ao pagador e respeitando o tipo comum/individual. Não registre novamente o mesmo pagamento em Lançamentos.</div>
 </section>
