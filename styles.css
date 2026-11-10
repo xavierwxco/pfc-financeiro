@@ -289,3 +289,137 @@ footer{
   .category-panel .category-chart-layout{grid-template-columns:1fr;gap:20px}
   .category-panel .category-chart-layout .donut-wrap{max-width:190px;margin:0 auto}
 }
+
+/* ===== PFC v4.2 · Refinamento de Cartões e Faturas ===== */
+#view-cards .cards-main{margin-bottom:18px}
+#view-cards .panel-head{gap:18px;flex-wrap:wrap}
+#view-cards .cards-list{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  align-items:stretch;
+  gap:16px;
+  margin-top:6px;
+}
+#view-cards .pfc-card-tile{
+  min-width:0;
+  border:1px solid #e1e9f4;
+  border-radius:20px;
+  background:linear-gradient(155deg,#ffffff 12%,#f7faff 100%);
+  padding:21px 22px;
+  box-shadow:0 10px 30px rgba(19,45,83,.055);
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+#view-cards .pfc-card-tile.is-inactive{opacity:.8}
+#view-cards .pfc-card-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#view-cards .pfc-card-symbol{
+  width:42px;height:42px;border-radius:13px;
+  display:grid;place-items:center;
+  background:#e8f0ff;color:#3265c9;font-size:21px;
+}
+#view-cards .pfc-card-state,
+#view-cards .pfc-invoice-status{
+  display:inline-flex;align-items:center;gap:7px;
+  width:max-content;max-width:100%;
+  padding:7px 10px;
+  border-radius:100px;
+  font-size:11px;font-weight:700;white-space:nowrap;
+}
+#view-cards .pfc-card-state::before,
+#view-cards .pfc-invoice-status::before{
+  content:"";width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.75
+}
+#view-cards .state-active,#view-cards .pfc-invoice-status.paid{background:#e8f7ef;color:#16815a}
+#view-cards .state-inactive{background:#f0f2f6;color:#667085}
+#view-cards .pfc-invoice-status.open{background:#fff3e6;color:#a46420}
+#view-cards .pfc-invoice-status.partial{background:#ecf2ff;color:#3965b0}
+#view-cards .pfc-card-name{font:800 clamp(19px,1.8vw,24px) Manrope,sans-serif;color:#14233c;line-height:1.25;overflow-wrap:anywhere}
+#view-cards .pfc-card-owner{color:#66758d;font-size:12px}
+#view-cards .pfc-card-owner b{color:#233552}
+#view-cards .pfc-card-detail-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;
+}
+#view-cards .pfc-card-detail-grid>div{
+  border:1px solid #e8eef7;background:#f7faff;border-radius:12px;padding:12px;
+}
+#view-cards .pfc-card-detail-grid small,
+#view-cards .pfc-card-footer small{
+  display:block;font-size:9px;letter-spacing:.7px;font-weight:700;color:#8796ab;margin-bottom:6px;
+}
+#view-cards .pfc-card-detail-grid strong{font-size:13px;color:#263c5c}
+#view-cards .pfc-card-footer{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:10px;border-top:1px solid #e9eef6;padding-top:15px;margin-top:auto;
+}
+#view-cards .pfc-card-footer>div{min-width:0}
+#view-cards .pfc-card-footer strong{display:block;font:800 16px Manrope,sans-serif;color:#152a49;overflow-wrap:anywhere}
+#view-cards .pfc-toggle-btn{
+  min-height:38px;padding:8px 13px;flex-shrink:0;
+  font-size:11px;font-weight:700;background:#fff;border:1px solid #d5dfed;
+  box-shadow:0 4px 12px rgba(15,23,42,.04);
+  transition:background .15s,color .15s;
+}
+#view-cards .pfc-toggle-btn:hover{background:#edf3ff;color:#2859b5}
+#view-cards .card-empty{padding:22px;color:#667085}
+#view-cards .cards-help{font-size:12px;color:#61728b;line-height:1.65}
+#view-cards #cardsStatus:empty{display:none}
+#view-cards .table-scroll{overflow:auto}
+#view-cards table{border-collapse:separate;border-spacing:0;width:100%;min-width:820px}
+#view-cards thead th{font-size:10px;color:#8b9ab2;letter-spacing:.6px;padding:13px 12px}
+#view-cards tbody td{font-size:12px;padding:15px 12px;vertical-align:middle;color:#354761;line-height:1.55;white-space:normal}
+#view-cards .purchase-group-row td{background:#f1f5fc;padding:11px 13px;border-top:12px solid white;border-bottom:0}
+#view-cards .purchase-group-head{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}
+#view-cards .purchase-group-icon{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#e0eaff;color:#406cbd;font-size:14px}
+#view-cards .purchase-group-head b{font-size:13px;color:#263d64;overflow-wrap:anywhere}
+#view-cards .purchase-group-count{font-size:11px;color:#8393aa}
+#view-cards .purchase-group-total{margin-left:auto;font-size:12px;font-weight:800;color:#243c64}
+#view-cards .pfc-purchase-name{font-weight:700;color:#223955}
+#view-cards .pfc-purchase-amount{font-weight:700;color:#1a3558;white-space:nowrap}
+#view-cards .pfc-installment-badge{display:inline-flex;align-items:center;background:#edf3ff;color:#3964b6;font-size:11px;font-weight:800;padding:5px 9px;border-radius:8px}
+#view-cards .pfc-scope{display:inline-flex;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700}
+#view-cards .pfc-scope.is-common{color:#1b8b66;background:#eaf7f1}
+#view-cards .pfc-scope.is-individual{color:#735cb1;background:#f2edfb}
+#view-cards .pfc-invoice-row td{padding-top:20px;padding-bottom:20px}
+#view-cards .pfc-invoice-card{font-size:13px;color:#172d4b;overflow-wrap:anywhere}
+#view-cards .pfc-invoice-amount{font-size:13px;font-weight:800;color:#1a3558;white-space:nowrap}
+#view-cards .pfc-invoice-parts{display:flex;flex-direction:column;gap:7px;min-width:150px}
+#view-cards .pfc-invoice-part{display:flex;align-items:center;gap:8px;min-width:0}
+#view-cards .pfc-invoice-part-number{font-size:11px;white-space:nowrap;border-radius:8px;padding:4px 8px;background:#eaf0ff;color:#365fb8;font-weight:800}
+#view-cards .pfc-invoice-part-name{font-size:11px;color:#61728b;min-width:0;overflow-wrap:anywhere}
+#view-cards .pfc-invoice-count{display:block;color:#91a0b4;font-size:10px;margin-top:7px}
+#view-cards .pfc-invoice-action{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:190px}
+#view-cards .pfc-invoice-paid,#view-cards .pfc-invoice-due{font-size:11px;color:#6b7b90;line-height:1.5}
+#view-cards .pfc-invoice-paid b,#view-cards .pfc-invoice-due b{color:#2b405c}
+#view-cards .pfc-invoice-status{margin-bottom:2px}
+#view-cards .pfc-pay-btn{
+  margin-top:6px;min-height:40px;border-radius:11px;
+  font-size:11px;font-weight:700;
+  width:auto;white-space:nowrap;
+}
+#view-cards .cards-warning{
+  border:1px solid #dce8f9;border-radius:14px;
+  background:#eff6ff;color:#52749d;
+  font-size:12px;line-height:1.6;padding:14px 17px;
+}
+/* Formulários dos cartões: modais legíveis e coerentes com o restante do PFC */
+.card-modal-bg{display:none;position:fixed;inset:0;z-index:80;align-items:center;justify-content:center;padding:16px;background:rgba(12,26,48,.58);backdrop-filter:blur(4px)}
+.card-modal-bg.open{display:flex}
+.card-modal{width:min(100%,490px);max-height:calc(100vh - 32px);overflow:auto;background:#fff;border-radius:20px;padding:24px;box-shadow:0 28px 65px rgba(15,23,42,.22)}
+.card-modal h2{font:800 20px Manrope,sans-serif;margin:0 0 18px;color:#172d49}
+.card-modal label{display:block;font-size:12px;font-weight:700;color:#40516c;margin:12px 0}
+.card-modal input,.card-modal select{display:block;width:100%;border:1px solid #dbe3ef;border-radius:10px;padding:11px 12px;background:#fff;color:#243b5c;margin-top:6px;font:500 13px 'DM Sans',sans-serif}
+.card-modal .cards-help{font-size:12px;color:#5d6f88;line-height:1.65;margin:12px 0}
+.card-modal [data-error]{color:#c03945}
+.card-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+@media(max-width:1050px){
+  #view-cards .cards-list{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  #view-cards .pfc-card-tile{padding:18px}
+  #view-cards .pfc-card-footer{align-items:flex-start}
+  #view-cards .pfc-card-footer strong{font-size:14px}
+  #view-cards .panel-head{align-items:flex-start}
+  #view-cards .panel-head .primary-btn{max-width:100%}
+  #view-cards table{min-width:750px}
+}
