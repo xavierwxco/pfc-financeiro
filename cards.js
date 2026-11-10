@@ -1,5 +1,5 @@
-// PFC: cadastro de cartões, compras e faturas previstas.
-// Compras de cartão NÃO são despesas pagas nesta versão.
+// PFC: cartões, compras parceladas e faturas.
+// Compras previstas não entram no acerto; pagamentos confirmados são registrados pelo Supabase.
 (()=>{'use strict';
 const C=window.PFC_CONFIG, sb=window.PFC_SB, el=id=>document.getElementById(id);
 const fmtMoney=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n||0));
@@ -45,27 +45,65 @@ async function fetchAll(){
  render();
 }
 function render(){
+ // Cartões: informações em blocos separados para melhor leitura.
  const list=el('cardsList');
- list.innerHTML=cards.map(c=>`<div class="card-item"><strong>${escape(c.label)}</strong><small>Titular: ${escape(labelOwner(c.owner_user_id))}</small><small>Fechamento: dia ${c.closing_day} · Vencimento: dia ${c.due_day}</small><small>Limite cadastrado: ${c.credit_limit==null?'Não informado':fmtMoney(c.credit_limit)}</small><small>${c.active?'Ativo':'Inativo'}</small><button class="outline-btn" data-toggle-card="${c.id}">${c.active?'Desativar':'Reativar'}</button></div>`).join('')||'<div class="card-empty">Nenhum cartão cadastrado.</div>';
+ list.innerHTML=cards.map(c=>`
+  <article class="pfc-card-tile ${c.active?'':'is-inactive'}">
+    <div class="pfc-card-heading">
+      <span class="pfc-card-symbol" aria-hidden="true">▣</span>
+      <span class="pfc-card-state ${c.active?'state-active':'state-inactive'}">${c.active?'Ativo':'Inativo'}</span>
+    </div>
+    <div class="pfc-card-name">${escape(c.label)}</div>
+    <div class="pfc-card-owner">Titular: <b>${escape(labelOwner(c.owner_user_id))}</b></div>
+    <div class="pfc-card-detail-grid">
+      <div><small>FECHAMENTO</small><strong>Dia ${Number(c.closing_day)}</strong></div>
+      <div><small>VENCIMENTO</small><strong>Dia ${Number(c.due_day)}</strong></div>
+    </div>
+    <div class="pfc-card-footer">
+      <div><small>LIMITE CADASTRADO</small><strong>${c.credit_limit==null?'Não informado':fmtMoney(c.credit_limit)}</strong></div>
+      <button type="button" class="outline-btn pfc-toggle-btn" data-toggle-card="${escape(c.id)}">${c.active?'Desativar':'Reativar'}</button>
+    </div>
+  </article>`).join('')||'<div class="card-empty">Nenhum cartão cadastrado.</div>';
  for(const button of list.querySelectorAll('[data-toggle-card]'))button.addEventListener('click',async()=>{
   const c=cards.find(x=>x.id===button.dataset.toggleCard);if(!c)return;
   button.disabled=true;
   try{const {error}=await sb.from('credit_cards').update({active:!c.active}).eq('id',c.id).eq('household_id',C.householdId);if(error)throw error;await fetchAll();setStatus('Cartão atualizado.');}catch(e){setStatus('Não foi possível atualizar: '+e.message)}finally{button.disabled=false}
  });
  const cardMap=new Map(cards.map(c=>[c.id,c]));
- el('cardPurchaseRows').innerHTML=purchases.map(p=>`<tr><td>${escape(p.description)}</td><td>${escape(cardMap.get(p.card_id)?.label||'Cartão')}</td><td>${brDate(p.purchased_on)}</td><td>${p.installment_count}x</td><td>${p.expense_scope==='common'?'Comum':'Individual'}</td><td class="right">${fmtMoney(p.total_amount)}</td></tr>`).join('')||'<tr><td colspan="6">Nenhuma compra cadastrada.</td></tr>';
+ // Compras agrupadas pelo cartão, sem alterar registros no banco.
+ const groupedPurchases=new Map();
+ for(const p of purchases){const key=p.card_id;if(!groupedPurchases.has(key))groupedPurchases.set(key,[]);groupedPurchases.get(key).push(p)}
+ const cardIds=[...groupedPurchases.keys()].sort((a,b)=>String(cardMap.get(a)?.label||'').localeCompare(String(cardMap.get(b)?.label||''),'pt-BR'));
+ el('cardPurchaseRows').innerHTML=cardIds.map(cardId=>{
+  const group=groupedPurchases.get(cardId),card=cardMap.get(cardId);
+  const subtotal=group.reduce((s,p)=>s+Math.round(Number(p.total_amount)*100),0)/100;
+  const header=`<tr class="purchase-group-row"><td colspan="6"><div class="purchase-group-head"><span class="purchase-group-icon" aria-hidden="true">▣</span><b>${escape(card?.label||'Cartão')}</b><span class="purchase-group-count">${group.length} ${group.length===1?'compra':'compras'}</span><span class="purchase-group-total">${fmtMoney(subtotal)}</span></div></td></tr>`;
+  const rows=group.map(p=>`<tr><td><strong class="pfc-purchase-name">${escape(p.description)}</strong></td><td>${escape(card?.label||'Cartão')}</td><td>${brDate(p.purchased_on)}</td><td><span class="pfc-installment-badge">${Number(p.installment_count)}x</span></td><td><span class="pfc-scope ${p.expense_scope==='common'?'is-common':'is-individual'}">${p.expense_scope==='common'?'Comum':'Individual'}</span></td><td class="right pfc-purchase-amount">${fmtMoney(p.total_amount)}</td></tr>`).join('');
+  return header+rows;
+ }).join('')||'<tr><td colspan="6">Nenhuma compra cadastrada.</td></tr>';
+ // A coluna "Parcelas" mostra 1/3, 2/3 etc. Não confundir com
+ // a quantidade de compras/parcelas presentes naquela fatura.
  const purchaseMap=new Map(purchases.map(p=>[p.id,p]));const grouped=new Map();
- for(const inst of installments){const purchase=purchaseMap.get(inst.purchase_id);if(!purchase)continue;const card=cardMap.get(purchase.card_id);if(!card)continue;const key=card.id+'|'+inst.invoice_due_on.slice(0,7);let v=grouped.get(key);if(!v){v={label:card.label,due:inst.invoice_due_on,amount:0,count:0};grouped.set(key,v)}v.amount+=Number(inst.amount);v.count++;if(inst.invoice_due_on<v.due)v.due=inst.invoice_due_on}
+ for(const inst of installments){
+  const purchase=purchaseMap.get(inst.purchase_id);if(!purchase)continue;
+  const card=cardMap.get(purchase.card_id);if(!card)continue;
+  const key=card.id+'|'+inst.invoice_due_on.slice(0,7);
+  let v=grouped.get(key);if(!v){v={label:card.label,due:inst.invoice_due_on,amount:0,items:[]};grouped.set(key,v)}
+  v.amount+=Number(inst.amount);
+  v.items.push({description:purchase.description,number:Number(inst.installment_number),count:Number(purchase.installment_count),amount:Number(inst.amount)});
+  if(inst.invoice_due_on<v.due)v.due=inst.invoice_due_on;
+ }
  const paidMap=new Map();
  for(const p of invoicePayments){const key=p.card_id+'|'+p.invoice_month.slice(0,7);
   const entry=paidMap.get(key)||{amount:0,rows:[]};entry.amount+=Number(p.amount);entry.rows.push(p);paidMap.set(key,entry)}
- el('invoiceRows').innerHTML=[...grouped.entries()].sort((a,b)=>a[1].due.localeCompare(b[1].due)).map(([key,v])=>{
+ el('invoiceRows').innerHTML=[...grouped.entries()].sort((a,b)=>a[1].due.localeCompare(b[1].due)||a[1].label.localeCompare(b[1].label,'pt-BR')).map(([key,v])=>{
   const paid=paidMap.get(key),cardId=key.split('|')[0],month=key.split('|')[1];
   const paidCents=Math.round((paid?.amount||0)*100),totalCents=Math.round(v.amount*100);
   const remainCents=Math.max(0,totalCents-paidCents);
-  const status=remainCents===0?'<strong>Quitada</strong>':paidCents>0?'<strong>Parcialmente paga</strong>':'<strong>Em aberto</strong>';
-  const action=remainCents>0?`<button class="outline-btn" data-pay-invoice="${cardId}|${month}">Registrar pagamento</button>`:'';
-  return `<tr><td>${escape(v.label)}</td><td>${brDate(v.due)}</td><td>${v.count}</td><td class="right">${fmtMoney(v.amount)}</td><td>${status}<small style="display:block">Pago: ${fmtMoney(paidCents/100)} · Pendente: ${fmtMoney(remainCents/100)}</small>${action}</td></tr>`;
+  const status=remainCents===0?'<span class="pfc-invoice-status paid">Quitada</span>':paidCents>0?'<span class="pfc-invoice-status partial">Parcialmente paga</span>':'<span class="pfc-invoice-status open">Em aberto</span>';
+  const action=remainCents>0?`<button type="button" class="primary-btn pfc-pay-btn" data-pay-invoice="${escape(cardId+'|'+month)}">＋ Registrar pagamento</button>`:'';
+  const details=v.items.map(i=>`<div class="pfc-invoice-part"><span class="pfc-invoice-part-number">${i.number}/${i.count}</span><span class="pfc-invoice-part-name" title="${escape(i.description)}">${escape(i.description)}</span></div>`).join('');
+  return `<tr class="pfc-invoice-row"><td><strong class="pfc-invoice-card">${escape(v.label)}</strong></td><td>${brDate(v.due)}</td><td><div class="pfc-invoice-parts">${details}</div><small class="pfc-invoice-count">${v.items.length} ${v.items.length===1?'parcela':'parcelas'} nesta fatura</small></td><td class="right pfc-invoice-amount">${fmtMoney(v.amount)}</td><td><div class="pfc-invoice-action">${status}<span class="pfc-invoice-paid">Pago: <b>${fmtMoney(paidCents/100)}</b></span><span class="pfc-invoice-due">Pendente: <b>${fmtMoney(remainCents/100)}</b></span>${action}</div></td></tr>`;
  }).join('')||'<tr><td colspan="5">Nenhuma fatura prevista.</td></tr>';
  for(const btn of el('invoiceRows').querySelectorAll('[data-pay-invoice]')) btn.addEventListener('click',()=>payInvoice(btn.dataset.payInvoice));
 }
