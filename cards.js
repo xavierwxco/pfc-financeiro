@@ -12,6 +12,21 @@ const monthEnd=(y,m)=>new Date(y,m+1,0).getDate();
 const safeDay=(y,m,day)=>Math.min(day,monthEnd(y,m));
 const shiftMonth=(y,m,count)=>{const d=new Date(y,m+count,1);return [d.getFullYear(),d.getMonth()]};
 let cards=[], purchases=[], installments=[], invoicePayments=[], paymentReversals=[], currentUser=null;
+// Limite usado = parcelas registradas ainda não quitadas (inclusive futuras).
+function usedCentsByCard(){
+ const purchaseToCard=new Map(purchases.map(p=>[p.id,p.card_id]));
+ const debts=new Map(cards.map(c=>[c.id,0]));
+ const voidIds=new Set(paymentReversals.map(r=>r.invoice_payment_id));
+ for(const i of installments){const cardId=purchaseToCard.get(i.purchase_id);if(cardId&&debts.has(cardId)) debts.set(cardId,debts.get(cardId)+Math.round(Number(i.amount)*100));}
+ for(const p of invoicePayments){if(!voidIds.has(p.id)&&debts.has(p.card_id))debts.set(p.card_id,debts.get(p.card_id)-Math.round(Number(p.amount)*100));}
+ for(const [id,value] of debts)debts.set(id,Math.max(0,value));
+ return debts;
+}
+async function loadExpenseCategories(){
+ const r=await sb.from('pfc_categories').select('id,name,kind,active,sort_order').eq('household_id',C.householdId).eq('kind','expense').eq('active',true).order('sort_order').order('name');
+ if(r.error)throw Error('Não foi possível carregar as categorias de despesas: '+r.error.message);
+ return (r.data||[]).map(c=>c.name);
+}
 
 // Primeiro fechamento igual ou posterior à compra. A data de vencimento será
 // a primeira ocorrência do dia escolhido estritamente após o fechamento.
@@ -48,27 +63,32 @@ async function fetchAll(){
 function render(){
  // Cartões: informações em blocos separados para melhor leitura.
  const list=el('cardsList');
- list.innerHTML=cards.map(c=>`
-  <article class="pfc-card-tile ${c.active?'':'is-inactive'}">
-    <div class="pfc-card-heading">
+ const usedByCard=usedCentsByCard();
+ list.innerHTML=cards.map(c=>{
+  const usedCents=usedByCard.get(c.id)||0;
+  const limitCents=c.credit_limit==null?null:Math.round(Number(c.credit_limit)*100);
+  const freeCents=limitCents==null?null:limitCents-usedCents;
+  const usedPct=limitCents==null?0:limitCents===0?(usedCents>0?100:0):Math.min(100,Math.max(0,100*usedCents/limitCents));
+  return `
+  <article class="pfc-card-tile pfc-card-compact ${c.active?'':'is-inactive'}">
+    <div class="pfc-card-topline">
       <span class="pfc-card-symbol" aria-hidden="true">▣</span>
+      <div class="pfc-card-ident"><div class="pfc-card-name">${escape(c.label)}</div><div class="pfc-card-owner">Titular: <b>${escape(labelOwner(c.owner_user_id))}</b></div></div>
       <span class="pfc-card-state ${c.active?'state-active':'state-inactive'}">${c.active?'Ativo':'Inativo'}</span>
     </div>
-    <div class="pfc-card-name">${escape(c.label)}</div>
-    <div class="pfc-card-owner">Titular: <b>${escape(labelOwner(c.owner_user_id))}</b></div>
-    <div class="pfc-card-detail-grid">
-      <div><small>FECHAMENTO</small><strong>Dia ${Number(c.closing_day)}</strong></div>
-      <div><small>VENCIMENTO</small><strong>Dia ${Number(c.due_day)}</strong></div>
+    <div class="pfc-card-dates"><span><b>Fechamento</b> Dia ${Number(c.closing_day)}</span><span><b>Vencimento</b> Dia ${Number(c.due_day)}</span></div>
+    <div class="pfc-card-limits">
+      <div><small>LIMITE</small><strong>${limitCents==null?'Não informado':fmtMoney(limitCents/100)}</strong></div>
+      <div><small>USADO</small><strong>${fmtMoney(usedCents/100)}</strong></div>
+      <div><small>DISPONÍVEL</small><strong class="${freeCents!=null&&freeCents<0?'pfc-over-limit':''}">${freeCents==null?'—':fmtMoney(Math.max(0,freeCents)/100)}</strong></div>
     </div>
-    <div class="pfc-card-footer">
-      <div><small>LIMITE CADASTRADO</small><strong>${c.credit_limit==null?'Não informado':fmtMoney(c.credit_limit)}</strong></div>
-      <div class="pfc-card-actions">
-        <button type="button" class="outline-btn pfc-edit-btn" data-edit-card="${escape(c.id)}">Editar</button>
-        <button type="button" class="outline-btn pfc-toggle-btn" data-toggle-card="${escape(c.id)}">${c.active?'Desativar':'Reativar'}</button>
-        <button type="button" class="outline-btn pfc-delete-btn" data-delete-card="${escape(c.id)}" ${purchases.some(p=>p.card_id===c.id)||invoicePayments.some(p=>p.card_id===c.id)?'disabled title="Cartão com histórico: use Desativar"':''}>Excluir</button>
-      </div>
+    ${limitCents!=null?`<div class="pfc-card-limit-meter" role="progressbar" aria-label="Limite utilizado de ${escape(c.label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(usedPct)}"><i style="width:${usedPct.toFixed(1)}%"></i></div>${freeCents<0?'<small class="pfc-limit-alert">Limite excedido em '+fmtMoney(-freeCents/100)+'</small>':''}`:'<div class="pfc-card-no-limit">Defina um limite para visualizar a disponibilidade.</div>'}
+    <div class="pfc-card-actions">
+      <button type="button" class="outline-btn pfc-edit-btn" data-edit-card="${escape(c.id)}">Editar</button>
+      <button type="button" class="outline-btn pfc-toggle-btn" data-toggle-card="${escape(c.id)}">${c.active?'Desativar':'Reativar'}</button>
+      <button type="button" class="outline-btn pfc-delete-btn" data-delete-card="${escape(c.id)}" ${purchases.some(p=>p.card_id===c.id)||invoicePayments.some(p=>p.card_id===c.id)?'disabled title="Cartão com histórico: use Desativar"':''}>Excluir</button>
     </div>
-  </article>`).join('')||'<div class="card-empty">Nenhum cartão cadastrado.</div>';
+  </article>`;}).join('')||'<div class="card-empty">Nenhum cartão cadastrado.</div>';
  for(const button of list.querySelectorAll('[data-toggle-card]'))button.addEventListener('click',async()=>{
   const c=cards.find(x=>x.id===button.dataset.toggleCard);if(!c)return;
   button.disabled=true;
@@ -260,12 +280,19 @@ async function deleteUnusedCard(id){
  }catch(e){setStatus('Não foi possível excluir: '+e.message);if(button&&button.isConnected)button.disabled=false}
 }
 
-function addPurchase(){
+async function addPurchase(){
  const available=cards.filter(c=>c.active);
  if(!available.length){setStatus('Cadastre um cartão ativo antes de registrar compras.');return}
- const opts=available.map(c=>`<option value="${c.id}">${escape(c.label)}</option>`).join('');
- const form=makeModal('Registrar compra no cartão',label('Cartão',`<select name="card_id">${opts}</select>`)+label('Descrição',input('description','text','maxlength="160" placeholder="Ex.: Mercado"'))+label('Categoria',`<select name="category"><option>Alimentação</option><option>Moradia</option><option>Transporte</option><option>Saúde</option><option>Educação</option><option>Lazer</option><option>Vestuário</option><option>Outros</option></select>`)+label('Data da compra',input('purchased_on','date'))+label('Valor total',input('total_amount','number','min="0.01" step="0.01"'))+label('Quantidade de parcelas',input('installment_count','number','min="1" max="60" value="1"'))+label('Classificação',`<select name="expense_scope"><option value="common">Despesa comum (50/50)</option><option value="individual">Despesa individual</option></select>`),async f=>{
+ let categories=[];
+ try{categories=await loadExpenseCategories();}catch(e){setStatus(e.message);return;}
+ if(!categories.length){setStatus('Não há categorias de despesas ativas. Xavier pode cadastrá-las em Categorias.');return;}
+ const opts=available.map(c=>`<option value="${escape(c.id)}">${escape(c.label)}</option>`).join('');
+ const catOptions=categories.map(n=>`<option value="${escape(n)}">${escape(n)}</option>`).join('');
+ const form=makeModal('Registrar compra no cartão',label('Cartão',`<select name="card_id">${opts}</select>`)+label('Descrição',input('description','text','maxlength="160" placeholder="Ex.: Mercado"'))+label('Categoria',`<select name="category" required>${catOptions}</select><span class="pfc-cat-hint">Categorias de despesas ativas do PFC. <button type="button" class="pfc-card-cat-manage" data-manage-categories>Gerenciar categorias</button></span>`)+label('Data da compra',input('purchased_on','date'))+label('Valor total',input('total_amount','number','min="0.01" step="0.01"'))+label('Quantidade de parcelas',input('installment_count','number','min="1" max="60" value="1"'))+label('Classificação',`<select name="expense_scope"><option value="common">Despesa comum (50/50)</option><option value="individual">Despesa individual</option></select>`),async f=>{
   const card=available.find(c=>c.id===f.get('card_id'));if(!card)throw Error('Cartão inválido.');
+  // Reconsulta para não gravar categoria removida ou desativada durante o formulário.
+  const validCategories=await loadExpenseCategories();
+  if(!validCategories.includes(f.get('category')))throw Error('Categoria de despesa indisponível. Reabra o formulário e escolha uma categoria ativa.');
   const total=Number(f.get('total_amount')),count=Number(f.get('installment_count')),day=f.get('purchased_on');
   if(!day||!Number.isInteger(count)||count<1||count>60||!Number.isFinite(total)||total<=0)throw Error('Confira a data, o valor e as parcelas.');
   if(Math.round(total*100)<count)throw Error('O valor é pequeno demais para a quantidade de parcelas.');
@@ -279,6 +306,8 @@ function addPurchase(){
     throw Error('Falha ao criar parcelas. '+result.error.message+(cleanup.error?' A compra pode ter ficado sem parcelas; confira no Supabase.':''));
   }
  });
+ const manage=form.querySelector('[data-manage-categories]');
+ if(manage)manage.addEventListener('click',()=>{form.closest('.card-modal-bg')?.remove();document.querySelector('[data-view="categories"]')?.click();});
  form.elements.purchased_on.value=new Date().toLocaleDateString('en-CA');return form;
 }
 async function onReady(){
