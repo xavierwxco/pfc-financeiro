@@ -601,3 +601,30 @@ input,select,textarea{accent-color:#346bcb}.panel h2{letter-spacing:-.02em}
   .category-panel .category-chart-layout .pfc-cat-legend-item{padding:9px 8px;}
   .category-panel .category-chart-layout .category-legend .pfc-cat-value{font-size:10px;}
 }
+
+/* PFC v4.6.2 · Cartões compactos + informações do limite */
+#view-cards .cards-list{align-items:start;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#view-cards .pfc-card-tile.pfc-card-compact{display:flex;gap:10px;padding:15px 17px;border-radius:15px;min-height:0;box-shadow:0 3px 13px rgba(19,45,83,.04)}
+#view-cards .pfc-card-topline{display:flex;align-items:center;gap:11px;min-width:0}
+#view-cards .pfc-card-topline .pfc-card-symbol{width:34px;height:34px;border-radius:9px;font-size:17px;flex:0 0 34px}
+#view-cards .pfc-card-ident{flex:1;min-width:0}
+#view-cards .pfc-card-topline .pfc-card-name{font-size:17px;line-height:1.2;margin-bottom:3px}
+#view-cards .pfc-card-topline .pfc-card-owner{font-size:11px}
+#view-cards .pfc-card-topline .pfc-card-state{font-size:10px;padding:5px 8px}
+#view-cards .pfc-card-dates{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#243c59}
+#view-cards .pfc-card-dates span{display:flex;gap:5px;align-items:center}
+#view-cards .pfc-card-dates b{font-size:10px;color:#74849c;font-weight:600}
+#view-cards .pfc-card-limits{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px 0 0;border-top:1px solid #e7edf5}
+#view-cards .pfc-card-limits small{display:block;font-size:9px;color:#7b8ca6;letter-spacing:.55px;font-weight:700;margin-bottom:4px}
+#view-cards .pfc-card-limits strong{display:block;font-size:clamp(11px,1.1vw,15px);color:#1a3356;font-weight:800;overflow-wrap:anywhere}
+#view-cards .pfc-card-limits strong.pfc-over-limit{color:#b83b43}
+#view-cards .pfc-card-limit-meter{height:6px;border-radius:20px;background:#e9eff7;overflow:hidden}
+#view-cards .pfc-card-limit-meter i{display:block;height:100%;border-radius:20px;background:#427ad6;transition:width .25s ease}
+#view-cards .pfc-limit-alert{color:#b83b43;font-size:10px}
+#view-cards .pfc-card-no-limit{font-size:10px;color:#8a98ab}
+#view-cards .pfc-card-compact .pfc-card-actions{padding-top:8px;border-top:1px solid #e7edf5;justify-content:flex-end;margin:0;gap:6px}
+#view-cards .pfc-card-compact .pfc-card-actions button{min-height:29px;padding:6px 9px;font-size:10px;border-radius:7px}
+.pfc-cat-hint{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:10px;color:#70829b;margin-top:6px;font-weight:400}
+.pfc-card-cat-manage{color:#315fbd;background:transparent;border:0;padding:2px;font-size:10px;cursor:pointer;text-decoration:underline}
+@media (max-width:900px){#view-cards .cards-list{grid-template-columns:1fr}}
+@media (max-width:410px){#view-cards .pfc-card-limits{gap:5px}#view-cards .pfc-card-topline .pfc-card-name{font-size:15px}}
