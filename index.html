@@ -46,6 +46,25 @@
           <article class="metric-card"><div class="metric-top"><span>Saldo disponível</span><span class="metric-icon blue">◈</span></div><strong id="balanceTotal">R$ 5.165,50</strong><small class="positive">Receitas menos despesas</small></article>
           <article class="metric-card"><div class="metric-top"><span>Faturas em aberto</span><span class="metric-icon purple">▣</span></div><strong id="billsTotal">R$ 2.130,00</strong><small class="muted">Cartões cadastrados</small></article>
         </div>
+        <section class="pfc-rec-dash-panel" aria-labelledby="pfc-rec-dash-title">
+          <div class="pfc-rec-dash-heading">
+            <div><h2 id="pfc-rec-dash-title">Contas recorrentes</h2><p>Vencimentos pendentes · independente do filtro mensal</p></div>
+            <button type="button" class="text-btn" data-go="recurring">Ver recorrentes →</button>
+          </div>
+          <div class="pfc-rec-dash-grid">
+            <button type="button" id="pfcRecOverdueCard" class="pfc-rec-dash-card pfc-rec-dash-late" aria-label="Ver contas recorrentes em atraso">
+              <span class="pfc-rec-dash-label">● Em atraso · últimos 12 meses</span>
+              <strong id="pfcRecOverdueAmount">—</strong>
+              <span id="pfcRecOverdueCount" class="pfc-rec-dash-detail">Consultando contas…</span>
+            </button>
+            <button type="button" id="pfcRecUpcomingCard" class="pfc-rec-dash-card pfc-rec-dash-soon" aria-label="Ver contas recorrentes que vencem hoje ou nos próximos cinco dias">
+              <span class="pfc-rec-dash-label">◷ Vence hoje ou em até 5 dias</span>
+              <strong id="pfcRecUpcomingAmount">—</strong>
+              <span id="pfcRecUpcomingCount" class="pfc-rec-dash-detail">Consultando contas…</span>
+            </button>
+          </div>
+          <p class="pfc-rec-dash-note" id="pfcRecStatus">Contas ativas e não pagas; desativadas não entram nesta previsão.</p>
+        </section>
         <div class="dashboard-grid"><article class="panel chart-panel"><div class="panel-head"><div><h2>Fluxo financeiro</h2><p>Receitas e despesas ao longo do ano</p></div><span class="legend"><i class="legend-income"></i> Receitas <i class="legend-expense"></i> Despesas</span></div><div class="chart-wrap"><canvas id="flowChart"></canvas></div></article>
           <article class="panel category-panel"><div class="panel-head"><div><h2>Despesas por categoria</h2><p>Distribuição dos gastos</p></div><button class="text-btn" data-go="reports">Ver relatório →</button></div><div class="category-chart-layout"><div class="donut-wrap"><canvas id="categoryChart"></canvas><div class="donut-center"><b id="categoryTotal">R$ 0,00</b><small>Total</small></div></div><div class="category-legend" id="categoryLegend"></div></div></article>
         </div>
