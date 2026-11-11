@@ -628,3 +628,18 @@ input,select,textarea{accent-color:#346bcb}.panel h2{letter-spacing:-.02em}
 .pfc-card-cat-manage{color:#315fbd;background:transparent;border:0;padding:2px;font-size:10px;cursor:pointer;text-decoration:underline}
 @media (max-width:900px){#view-cards .cards-list{grid-template-columns:1fr}}
 @media (max-width:410px){#view-cards .pfc-card-limits{gap:5px}#view-cards .pfc-card-topline .pfc-card-name{font-size:15px}}
+
+/* PFC 4.6.4 - resumo das contas recorrentes no Dashboard */
+.pfc-rec-dash-panel{background:#fff;border:1px solid #e5eaf2;border-radius:16px;padding:18px 20px;margin:0 0 16px;box-shadow:0 2px 8px #10182805}
+.pfc-rec-dash-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.pfc-rec-dash-heading h2{font:700 14px Manrope,sans-serif;margin:0;color:#17263f}
+.pfc-rec-dash-heading p{font-size:11px;color:#667085;margin:5px 0 0}
+.pfc-rec-dash-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.pfc-rec-dash-card{font:inherit;border:1px solid #e6ebf4;background:#f8faff;border-radius:12px;padding:15px 17px;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:7px;cursor:pointer;min-width:0;transition:border-color .15s,box-shadow .15s}
+.pfc-rec-dash-card:hover,.pfc-rec-dash-card:focus-visible{border-color:#8faeea;box-shadow:0 2px 9px #3166bb18;outline:none}
+.pfc-rec-dash-late{background:#fff8f7;border-color:#f6e3e1}.pfc-rec-dash-late:hover,.pfc-rec-dash-late:focus-visible{border-color:#dc8484}
+.pfc-rec-dash-label{font-size:11px;font-weight:650;color:#4e6076}.pfc-rec-dash-late .pfc-rec-dash-label{color:#aa4545}
+.pfc-rec-dash-card strong{font:800 22px Manrope,sans-serif;color:#162a44;font-variant-numeric:tabular-nums}
+.pfc-rec-dash-detail{font-size:11px;color:#667085}
+.pfc-rec-dash-note{font-size:10px;color:#8894a6;margin:12px 0 0;line-height:1.5}
+@media(max-width:640px){.pfc-rec-dash-panel{padding:15px}.pfc-rec-dash-grid{grid-template-columns:1fr}.pfc-rec-dash-card{padding:13px 14px}.pfc-rec-dash-heading{align-items:flex-start}.pfc-rec-dash-card strong{font-size:20px}}
