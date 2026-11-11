@@ -237,7 +237,75 @@ function updateCharts(){
     charts.report.update();
   }
 }
-function showView(n){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+n));document.querySelectorAll('.nav-item').forEach(a=>a.classList.toggle('active',a.dataset.view===n));const labels={dashboard:'Dashboard',transactions:'Lançamentos',extract:'Extrato',settlement:'Acerto de contas',cards:'Cartões e faturas',recurring:'Recorrentes',reports:'Relatórios',categories:'Categorias',settings:'Configurações'};const subs={dashboard:'Aqui está um panorama atualizado das finanças da família.',transactions:'Cadastre, acompanhe e corrija lançamentos manuais.',extract:'Consulte todas as movimentações em ordem contínua.',settlement:'Acompanhe quem pagou mais e os acertos entre Xavier e Talita.',cards:'Gerencie cartões, compras parceladas e pagamentos.',recurring:'Organize contas fixas e lançamentos programados.',reports:'Compare meses, totais e resultados do acerto familiar.',categories:'Organize receitas e despesas sem perder o histórico.',settings:'Seu perfil, segurança, usuários e preferências do aplicativo.'};$('crumb').textContent=labels[n]||n;if($('pageTitle')) $('pageTitle').textContent=n==='dashboard'?`Olá, ${currentMemberName} 👋`:(labels[n]||n);if($('pageSubtitle')) $('pageSubtitle').textContent=subs[n]||'';if($('pageSectionBadge')) $('pageSectionBadge').textContent=n==='dashboard'?'VISÃO DA FAMÍLIA':'PFC · FINANCEIRA COMPLETA';activeView=n;if(n==='dashboard')void refreshOpenCardInvoices();const showPeriod=['dashboard','transactions','extract'].includes(n);if($('periodFilterControl'))$('periodFilterControl').hidden=!showPeriod;if(showPeriod){$('monthFilter').value=periodSelections[n];render();}$('sidebar').classList.remove('open');if(n==='settlement')renderSettlement();}
+// PFC 4.6.4: indicadores de recorrencias no Dashboard (somente consultas SELECT).
+// A regra de competencia e de pagamento segue a tela Recorrentes: data de
+// vencimento limitada ao ultimo dia do mes e pagamento ativo sem reversed_at.
+let recurringDashboardRequest=0;
+function pfcRecDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function pfcRecDateFromString(s){const [y,m,d]=s.slice(0,10).split('-').map(Number);return new Date(y,m-1,d);}
+function pfcRecMonth(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;}
+function summarizeRecurringDashboard(accounts,payments,now=new Date()){
+ const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+ const oldest=new Date(today.getFullYear(),today.getMonth()-12,today.getDate());
+ const last=new Date(today.getFullYear(),today.getMonth(),today.getDate()+5);
+ const paidKeys=new Set(payments.filter(p=>!p.reversed_at).map(p=>p.recurring_id+'|'+String(p.period_month).slice(0,7)));
+ const overdue=[],soon=[];
+ const start=new Date(oldest.getFullYear(),oldest.getMonth(),1);
+ const end=new Date(last.getFullYear(),last.getMonth(),1);
+ for(const r of accounts){
+  // A base atual nao guarda data de desativacao; nao projetar meses de contas desativadas.
+  if(r.active!==true)continue;
+  const startMonth=String(r.start_month||'').slice(0,7);
+  if(!/^\d{4}-\d{2}$/.test(startMonth))continue;
+  const day=Math.trunc(Number(r.due_day));
+  if(!Number.isFinite(day)||day<1||day>31)continue;
+  const amountCents=Math.round(Number(r.amount)*100);
+  if(!Number.isFinite(amountCents)||amountCents<=0)continue;
+  for(let d=new Date(start);d<=end;d.setMonth(d.getMonth()+1)){
+   const month=pfcRecMonth(d).slice(0,7);
+   if(month<startMonth)continue;
+   if(r.frequency==='yearly'&&month.slice(5,7)!==startMonth.slice(5,7))continue;
+   if(r.frequency!=='monthly'&&r.frequency!=='yearly')continue;
+   if(paidKeys.has(r.id+'|'+month))continue;
+   const due=new Date(d.getFullYear(),d.getMonth(),Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));
+   const item={id:r.id,name:r.description||'Conta recorrente',due:pfcRecDate(due),amountCents};
+   if(due<today&&due>=oldest)overdue.push(item);
+   else if(due>=today&&due<=last)soon.push(item);
+  }
+ }
+ const sum=items=>items.reduce((n,r)=>n+r.amountCents,0);
+ return {overdue,soon,overdueCents:sum(overdue),soonCents:sum(soon)};
+}
+async function refreshRecurringDashboard(){
+ if(!user||!$('pfcRecOverdueAmount'))return;
+ const request=++recurringDashboardRequest;
+ const status=$('pfcRecStatus');
+ const [oldAmount,newAmount]=[$('pfcRecOverdueAmount'),$('pfcRecUpcomingAmount')];
+ oldAmount.textContent='…';newAmount.textContent='…';
+ try{
+  const [accountsResult,paymentsResult]=await Promise.all([
+   sb.from('recurring_expenses').select('id,description,amount,frequency,due_day,start_month,active').eq('household_id',C.householdId),
+   sb.from('recurring_payments').select('recurring_id,period_month,reversed_at').eq('household_id',C.householdId)
+  ]);
+  if(accountsResult.error)throw accountsResult.error;
+  if(paymentsResult.error)throw paymentsResult.error;
+  if(request!==recurringDashboardRequest||!user)return;
+  const result=summarizeRecurringDashboard(accountsResult.data||[],paymentsResult.data||[]);
+  oldAmount.textContent=brl(result.overdueCents/100);newAmount.textContent=brl(result.soonCents/100);
+  $('pfcRecOverdueCount').textContent=`${result.overdue.length} ${result.overdue.length===1?'vencimento pendente':'vencimentos pendentes'}`;
+  $('pfcRecUpcomingCount').textContent=`${result.soon.length} ${result.soon.length===1?'vencimento próximo':'vencimentos próximos'}`;
+  status.textContent='Contas ativas não pagas · vencidas nos últimos 12 meses ou a vencer em até 5 dias. Contas desativadas não entram.';
+  const decorate=(id,items)=>{const el=$(id);if(el)el.title=items.length?items.map(x=>`${x.name} · ${fmt(x.due)} · ${brl(x.amountCents/100)}`).join('\n'):'Clique para abrir Recorrentes';};
+  decorate('pfcRecOverdueCard',result.overdue);decorate('pfcRecUpcomingCard',result.soon);
+ }catch(error){
+  if(request!==recurringDashboardRequest||!user)return;
+  console.error('Não foi possível consultar recorrências no Dashboard:',error);
+  oldAmount.textContent='Indisponível';newAmount.textContent='Indisponível';
+  $('pfcRecOverdueCount').textContent='Falha na consulta';$('pfcRecUpcomingCount').textContent='Falha na consulta';
+  status.textContent='Não foi possível consultar as recorrências. Abra o Dashboard novamente para tentar.';
+ }
+}
+function showView(n){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+n));document.querySelectorAll('.nav-item').forEach(a=>a.classList.toggle('active',a.dataset.view===n));const labels={dashboard:'Dashboard',transactions:'Lançamentos',extract:'Extrato',settlement:'Acerto de contas',cards:'Cartões e faturas',recurring:'Recorrentes',reports:'Relatórios',categories:'Categorias',settings:'Configurações'};const subs={dashboard:'Aqui está um panorama atualizado das finanças da família.',transactions:'Cadastre, acompanhe e corrija lançamentos manuais.',extract:'Consulte todas as movimentações em ordem contínua.',settlement:'Acompanhe quem pagou mais e os acertos entre Xavier e Talita.',cards:'Gerencie cartões, compras parceladas e pagamentos.',recurring:'Organize contas fixas e lançamentos programados.',reports:'Compare meses, totais e resultados do acerto familiar.',categories:'Organize receitas e despesas sem perder o histórico.',settings:'Seu perfil, segurança, usuários e preferências do aplicativo.'};$('crumb').textContent=labels[n]||n;if($('pageTitle')) $('pageTitle').textContent=n==='dashboard'?`Olá, ${currentMemberName} 👋`:(labels[n]||n);if($('pageSubtitle')) $('pageSubtitle').textContent=subs[n]||'';if($('pageSectionBadge')) $('pageSectionBadge').textContent=n==='dashboard'?'VISÃO DA FAMÍLIA':'PFC · FINANCEIRA COMPLETA';activeView=n;if(n==='dashboard'){void refreshOpenCardInvoices();void refreshRecurringDashboard();}const showPeriod=['dashboard','transactions','extract'].includes(n);if($('periodFilterControl'))$('periodFilterControl').hidden=!showPeriod;if(showPeriod){$('monthFilter').value=periodSelections[n];render();}$('sidebar').classList.remove('open');if(n==='settlement')renderSettlement();}
 document.querySelectorAll('[data-view]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();showView(a.dataset.view)}));document.querySelectorAll('[data-go]').forEach(a=>a.addEventListener('click',()=>showView(a.dataset.go)));$('menuBtn').onclick=()=>$('sidebar').classList.toggle('open');$('settlementPeriod').addEventListener('change',()=>{ $('settlementMonth').disabled=$('settlementPeriod').value==='all';renderSettlement();});$('settlementMonth').value=[new Date().getFullYear(),String(new Date().getMonth()+1).padStart(2,'0')].join('-');$('settlementMonth').addEventListener('change',renderSettlement);$('monthFilter').addEventListener('change',()=>{periodSelections[activeView]=$('monthFilter').value;render();});
 $('settlementTargetMonth').value=$('settlementMonth').value;
 $('settlementPaidOn').value=new Date().toLocaleDateString('en-CA');
@@ -246,6 +314,9 @@ $('settlementTo').selectedIndex=1;
 $('settlementForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('settlementSubmit');b.disabled=true;try{await recordSettlement();$('settlementMessage').textContent='Transferencia registrada. Saldo recalculado.';$('settlementAmount').value='';}catch(err){$('settlementMessage').textContent='Erro: '+err.message;}finally{b.disabled=false;}});
 window.addEventListener('pfc:invoicePaid',async()=>{await load();render();await refreshOpenCardInvoices();});window.addEventListener('pfc:profileUpdated',e=>{currentMemberName=e.detail||currentMemberName;if(activeView==='dashboard')showView('dashboard')});
 // O indicador abre a listagem completa de faturas; funciona também pelo teclado.
+for(const id of ['pfcRecOverdueCard','pfcRecUpcomingCard']){const el=$(id);if(el)el.addEventListener('click',()=>showView('recurring'));}
+window.addEventListener('pfc:invoicePaid',()=>{if(activeView==='dashboard')void refreshRecurringDashboard();});
+window.addEventListener('focus',()=>{if(user&&activeView==='dashboard')void refreshRecurringDashboard();});
 const invoiceTile=$('billsTotal')?.closest('.metric-card');
 if(invoiceTile){
  invoiceTile.style.cursor='pointer';invoiceTile.setAttribute('role','button');invoiceTile.tabIndex=0;
@@ -257,7 +328,7 @@ if(invoiceTile){
 }
 const modal=$('modal');function close(){modal.classList.remove('open')}function open(){window.dispatchEvent(new Event('pfc:transactionFormOpened'));modal.classList.add('open');$('transactionForm').elements.date.value=new Date().toISOString().slice(0,10)}['newTransaction','newTransaction2','newTransactionBar'].forEach(id=>{const el=$(id); if(el) el.addEventListener('click',open)});$('closeModal').onclick=close;$('cancelModal').onclick=close;modal.addEventListener('click',e=>{if(e.target===modal)close()});$('transactionForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target),btn=e.target.querySelector('[type=submit]');btn.disabled=true;try{await save({description:f.get('description'),type:f.get('type'),amount:Number(f.get('amount')),category:f.get('category'),date:f.get('date'),owner:f.get('owner'),expenseScope:f.get('expenseScope')});render();close();e.target.reset();}catch(err){alert('Falha ao gravar no Supabase: '+err.message);}finally{btn.disabled=false;}});
 function exportCsv(){const lines=[['Data','Descrição','Categoria','Tipo','Responsável','Valor'],...tx.map(t=>[t.date,t.description,t.category,t.type,t.owner,t.amount])].map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(';'));const a=document.createElement('a'),u=URL.createObjectURL(new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'}));a.href=u;a.download='PFC-extrato.csv';a.click();URL.revokeObjectURL(u);}$('exportCsv').onclick=exportCsv;if($('exportCsv2'))$('exportCsv2').onclick=exportCsv;
-$('pfc-login-form').addEventListener('submit',async e=>{e.preventDefault();alertLogin('');const f=new FormData(e.target),b=$('pfc-login-submit');b.disabled=true;b.textContent='Entrando…';const {data,error}=await sb.auth.signInWithPassword({email:f.get('email'),password:f.get('password')});b.disabled=false;b.textContent='Entrar';if(error){alertLogin('E-mail ou senha inválidos, ou serviço indisponível.');return;}await enter(data.user);});$('pfc-logout').onclick=async()=>{await sb.auth.signOut();tx=[];visibility(false);};sb.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){transfers=[];visibility(false);}});
+$('pfc-login-form').addEventListener('submit',async e=>{e.preventDefault();alertLogin('');const f=new FormData(e.target),b=$('pfc-login-submit');b.disabled=true;b.textContent='Entrando…';const {data,error}=await sb.auth.signInWithPassword({email:f.get('email'),password:f.get('password')});b.disabled=false;b.textContent='Entrar';if(error){alertLogin('E-mail ou senha inválidos, ou serviço indisponível.');return;}await enter(data.user);});$('pfc-logout').onclick=async()=>{recurringDashboardRequest++;await sb.auth.signOut();tx=[];visibility(false);};sb.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){transfers=[];visibility(false);}});
 if($('dismissNotice')) $('dismissNotice').onclick=()=>$('demoNotice').remove();
 $('workbookInput').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const w=XLSX.read(await f.arrayBuffer(),{type:'array'});$('importStatus').textContent=`Arquivo reconhecido (${w.SheetNames.length} abas). A importação ainda não foi executada; os registros precisam de conferência antes de gravar.`;}catch{$('importStatus').textContent='Não foi possível ler o arquivo Excel.';}});
 loginStart();})();
