@@ -20,7 +20,7 @@
     <div class="brand"><div class="brand-mark">P</div><div><strong>PFC</strong><small>Financeira Completa</small></div></div>
     <nav>
       <p class="nav-label">VISÃO GERAL</p>
-      <a class="nav-item active" href="#dashboard" data-view="dashboard"><span>▦</span> Dashboard</a>
+      <a class="nav-item active" href="#dashboard" data-view="dashboard"><span aria-hidden="true">⌂</span> Dashboard</a>
       <a class="nav-item" href="#transactions" data-view="transactions"><span>⇄</span> Lançamentos</a>
       <a class="nav-item" href="#extract" data-view="extract"><span>▤</span> Extrato</a>
       <a class="nav-item" href="#settlement" data-view="settlement"><span>⇄</span> Acerto de contas</a>
@@ -29,7 +29,7 @@
       <a class="nav-item" href="#recurring" data-view="recurring"><span>↻</span> Recorrentes</a>
       <a class="nav-item" href="#reports" data-view="reports"><span>▥</span> Relatórios</a>
       <p class="nav-label">CARTEIRA PESSOAL</p>
-      <a class="nav-item" href="#ppc" data-view="ppc"><span>◉</span> Minha carteira (PPC)</a>
+      <a class="nav-item" href="#ppc" data-view="ppc"><span aria-hidden="true">▱</span> Minha carteira (PPC)</a>
       <p class="nav-label">CONFIGURAÇÕES</p>
       <a class="nav-item" href="#categories" data-view="categories"><span>◇</span> Categorias</a>
       <a class="nav-item" href="#settings" data-view="settings"><span>⚙</span> Configurações</a>
@@ -67,6 +67,7 @@
           </div>
           <p class="pfc-rec-dash-note" id="pfcRecStatus">Contas ativas e não pagas; desativadas não entram nesta previsão.</p>
         </section>
+        <section class="panel ppc-family-dash"><div class="panel-head"><div><h2>PPC · Compartilhado com a família</h2><p>Movimentações pessoais autorizadas · apenas informativas · fora do acerto 50/50</p></div><button type="button" class="outline-btn" id="ppcDashRefresh">Atualizar</button></div><div class="table-scroll"><table><thead><tr><th>DATA</th><th>DESCRIÇÃO</th><th>ORIGEM</th><th>TIPO / CATEGORIA</th><th class="right">VALOR</th></tr></thead><tbody id="ppcDashRows"><tr><td colspan="5">Carregando compartilhamentos…</td></tr></tbody></table></div></section>
         <div class="dashboard-grid"><article class="panel chart-panel"><div class="panel-head"><div><h2>Fluxo financeiro</h2><p>Receitas e despesas ao longo do ano</p></div><span class="legend"><i class="legend-income"></i> Receitas <i class="legend-expense"></i> Despesas</span></div><div class="chart-wrap"><canvas id="flowChart"></canvas></div></article>
           <article class="panel category-panel"><div class="panel-head"><div><h2>Despesas por categoria</h2><p>Distribuição dos gastos</p></div><button class="text-btn" data-go="reports">Ver relatório →</button></div><div class="category-chart-layout"><div class="donut-wrap"><canvas id="categoryChart"></canvas><div class="donut-center"><b id="categoryTotal">R$ 0,00</b><small>Total</small></div></div><div class="category-legend" id="categoryLegend"></div></div></article>
         </div>
@@ -192,11 +193,12 @@
 </section>
 
       <section class="view" id="view-ppc" aria-labelledby="ppcSectionTitle">
-        <div class="ppc-heading"><div><h2 id="ppcSectionTitle">Minha carteira pessoal</h2><p>Apenas você pode ver seus lançamentos particulares. Nenhum registro é sincronizado automaticamente com o PFC.</p></div><button type="button" id="ppcNewButton" class="primary-btn">＋ Novo lançamento pessoal</button></div>
+        <div class="ppc-heading"><div><h2 id="ppcSectionTitle">Minha carteira pessoal</h2><p>Sua carteira é privada por padrão. Você escolhe quais lançamentos compartilhar com a família, sem alterar o acerto 50/50.</p></div><button type="button" id="ppcNewButton" class="primary-btn">＋ Novo lançamento pessoal</button></div>
         <div id="ppcMessage" class="ppc-feedback" role="status" aria-live="polite"></div>
         <div class="ppc-metrics"><article><small>Receitas pessoais no mês</small><strong id="ppcIncome">R$ 0,00</strong></article><article><small>Despesas pessoais no mês</small><strong id="ppcExpense">R$ 0,00</strong></article><article><small>Saldo pessoal no mês</small><strong id="ppcBalance">R$ 0,00</strong></article></div>
-        <article class="panel"><div class="ppc-toolbar"><h3>Minhas movimentações</h3><label for="ppcPeriod">Período <input type="month" id="ppcPeriod"></label></div><div class="table-scroll"><table><thead><tr><th>DATA</th><th>DESCRIÇÃO</th><th>TIPO / CATEGORIA</th><th class="right">VALOR</th><th>AÇÕES</th></tr></thead><tbody id="ppcRows"><tr><td colspan="5">Aguardando acesso à carteira…</td></tr></tbody></table></div></article>
-        <p class="ppc-private-note">🔒 Privacidade: lançamentos pessoais são protegidos por RLS no Supabase. Compartilhamento e importação de dados do PFC serão desenvolvidos em uma próxima fase, sem duplicar registros.</p>
+        <article class="panel"><div class="ppc-toolbar"><h3>Minhas movimentações</h3><label for="ppcPeriod">Período <input type="month" id="ppcPeriod"></label></div><div class="table-scroll"><table><thead><tr><th>DATA</th><th>DESCRIÇÃO</th><th>TIPO / CATEGORIA</th><th class="right">VALOR</th><th>VISIBILIDADE / AÇÕES</th></tr></thead><tbody id="ppcRows"><tr><td colspan="5">Aguardando acesso à carteira…</td></tr></tbody></table></div></article>
+        <article class="panel ppc-family-shares"><div class="ppc-toolbar"><div><h3>Compartilhamentos da família</h3><p>Somente lançamentos autorizados por Xavier ou Talita · não entram no acerto 50/50</p></div><button type="button" class="outline-btn" id="ppcRefreshShares">Atualizar</button></div><p id="ppcShareStatus" role="status" class="ppc-private-note"></p><div class="table-scroll"><table><thead><tr><th>DATA</th><th>DESCRIÇÃO</th><th>QUEM COMPARTILHOU</th><th>CATEGORIA / TIPO</th><th class="right">VALOR</th></tr></thead><tbody id="ppcFamilyRows"><tr><td colspan="5">Carregando compartilhamentos autorizados…</td></tr></tbody></table></div></article>
+        <p class="ppc-private-note">🔒 Privacidade: só os lançamentos marcados como compartilhados ficam visíveis para a família. Esse compartilhamento é informativo e NÃO altera receitas, despesas ou acerto 50/50 do PFC. Importação de registros antigos ainda não está habilitada.</p>
       </section>
       <section class="view" id="view-categories">
   <article class="panel p46-panel">
