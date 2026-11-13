@@ -663,3 +663,14 @@ input,select,textarea{accent-color:#346bcb}.panel h2{letter-spacing:-.02em}
 #view-ppc .ppc-row-actions button:last-child{color:#b42318}
 #view-ppc .ppc-kind{font-weight:700}
 @media(max-width:800px){#view-ppc .ppc-metrics{grid-template-columns:1fr}#view-ppc .ppc-heading{align-items:stretch}}
+
+/* PPC 5.0.2 — visibilidade familiar, sem afetar cálculos anteriores */
+#view-ppc .ppc-share-btn{background:#eff6ff;border-color:#bcd3f5;color:#1c5f9e}
+#view-ppc .ppc-share-btn.is-shared{background:#ecfdf3;border-color:#acd9be;color:#057647}
+#view-ppc .ppc-row-actions{flex-wrap:wrap;align-items:center}
+#view-ppc .ppc-share-status{font-size:10px;color:#64748b;display:block;margin-bottom:5px}
+#view-ppc .ppc-family-shares{margin-top:16px}
+#view-ppc .ppc-family-shares .ppc-toolbar p{font-size:11px;color:#64748b;margin:5px 0 0}
+#view-ppc .ppc-family-shares h3{font-size:14px}
+#view-ppc .ppc-row-actions button:last-child{color:#b42318}
+.ppc-family-dash{margin-bottom:16px}
