@@ -28,6 +28,8 @@
       <a class="nav-item" href="#cards" data-view="cards"><span>▣</span> Cartões e faturas</a>
       <a class="nav-item" href="#recurring" data-view="recurring"><span>↻</span> Recorrentes</a>
       <a class="nav-item" href="#reports" data-view="reports"><span>▥</span> Relatórios</a>
+      <p class="nav-label">CARTEIRA PESSOAL</p>
+      <a class="nav-item" href="#ppc" data-view="ppc"><span>◉</span> Minha carteira (PPC)</a>
       <p class="nav-label">CONFIGURAÇÕES</p>
       <a class="nav-item" href="#categories" data-view="categories"><span>◇</span> Categorias</a>
       <a class="nav-item" href="#settings" data-view="settings"><span>⚙</span> Configurações</a>
@@ -188,6 +190,14 @@
     <p class="settlement-note">¹ Saldo positivo: Talita deve a Xavier; negativo: Xavier deve a Talita. Cada mês considera as despesas pagas naquele mês e as transferências vinculadas ao respectivo mês de referência. Os valores do acerto são resultados mensais, não movimentações adicionais.</p>
   </article>
 </section>
+
+      <section class="view" id="view-ppc" aria-labelledby="ppcSectionTitle">
+        <div class="ppc-heading"><div><h2 id="ppcSectionTitle">Minha carteira pessoal</h2><p>Apenas você pode ver seus lançamentos particulares. Nenhum registro é sincronizado automaticamente com o PFC.</p></div><button type="button" id="ppcNewButton" class="primary-btn">＋ Novo lançamento pessoal</button></div>
+        <div id="ppcMessage" class="ppc-feedback" role="status" aria-live="polite"></div>
+        <div class="ppc-metrics"><article><small>Receitas pessoais no mês</small><strong id="ppcIncome">R$ 0,00</strong></article><article><small>Despesas pessoais no mês</small><strong id="ppcExpense">R$ 0,00</strong></article><article><small>Saldo pessoal no mês</small><strong id="ppcBalance">R$ 0,00</strong></article></div>
+        <article class="panel"><div class="ppc-toolbar"><h3>Minhas movimentações</h3><label for="ppcPeriod">Período <input type="month" id="ppcPeriod"></label></div><div class="table-scroll"><table><thead><tr><th>DATA</th><th>DESCRIÇÃO</th><th>TIPO / CATEGORIA</th><th class="right">VALOR</th><th>AÇÕES</th></tr></thead><tbody id="ppcRows"><tr><td colspan="5">Aguardando acesso à carteira…</td></tr></tbody></table></div></article>
+        <p class="ppc-private-note">🔒 Privacidade: lançamentos pessoais são protegidos por RLS no Supabase. Compartilhamento e importação de dados do PFC serão desenvolvidos em uma próxima fase, sem duplicar registros.</p>
+      </section>
       <section class="view" id="view-categories">
   <article class="panel p46-panel">
     <div class="panel-head"><div><h2>Plano de categorias</h2><p>Receitas e despesas separadas, com histórico preservado.</p></div><button class="primary-btn" id="p46AddCategory" type="button" hidden>＋ Nova categoria</button></div>
@@ -217,5 +227,12 @@
   </main>
 </div>
 <div class="modal-backdrop" id="modal"><form class="modal" id="transactionForm"><div class="modal-head"><div><h2>Novo lançamento</h2><p>Adicione uma movimentação financeira.</p></div><button type="button" class="close-btn" id="closeModal">×</button></div><label>Descrição<input required name="description" placeholder="Ex.: Supermercado" /></label><div class="form-row"><label>Tipo<select name="type"><option value="expense">Despesa</option><option value="income">Receita</option></select></label><label>Valor (R$)<input required name="amount" type="number" min="0.01" step="0.01" placeholder="0,00" /></label></div><div class="form-row"><label>Categoria<select name="category"><option>Moradia</option><option>Alimentação</option><option>Transporte</option><option>Saúde</option><option>Educação</option><option>Lazer</option><option>Outros</option></select></label><label>Data<input required name="date" type="date" /></label></div><div class="form-row"><label>Quem pagou<select name="owner"><option>Xavier</option><option>Talita</option></select></label><label>Classificação<select name="expenseScope"><option value="common">Despesa comum (50/50)</option><option value="individual">Despesa individual</option></select></label></div><div class="modal-actions"><button type="button" class="outline-btn" id="cancelModal">Cancelar</button><button class="primary-btn" type="submit">Salvar lançamento</button></div></form></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="app.js"></script><script src="cards.js"></script><script src="reports.js"></script><script src="corrections.js"></script><script src="settlement_cancel.js"></script><script src="recurring.js"></script><script src="admin.js"></script>
+
+<div class="modal-backdrop" id="ppcModal"><form class="modal" id="ppcForm"><div class="modal-head"><div><h2 id="ppcModalTitle">Novo lançamento pessoal</h2><p>Este registro ficará somente na sua carteira.</p></div><button type="button" class="close-btn" id="ppcModalClose" aria-label="Fechar">×</button></div>
+<label>Descrição<input name="description" maxlength="160" required placeholder="Ex.: Salário, compra pessoal" /></label>
+<div class="form-row"><label>Tipo<select name="kind" id="ppcKind"><option value="expense">Despesa</option><option value="income">Receita</option></select></label><label>Valor (R$)<input name="amount" type="number" min="0.01" step="0.01" required /></label></div>
+<div class="form-row"><label>Categoria<select name="category" id="ppcCategory" required></select></label><label>Data<input name="entry_date" type="date" required /></label></div>
+<label>Observações (privadas)<input name="notes" maxlength="500" placeholder="Opcional" /></label>
+<div class="modal-actions"><button type="button" class="outline-btn" id="ppcModalCancel">Cancelar</button><button type="submit" class="primary-btn" id="ppcSubmit">Salvar</button></div></form></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="app.js"></script><script src="cards.js"></script><script src="reports.js"></script><script src="corrections.js"></script><script src="settlement_cancel.js"></script><script src="recurring.js"></script><script src="admin.js"></script><script src="ppc.js"></script>
 </body></html>
