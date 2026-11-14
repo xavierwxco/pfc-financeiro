@@ -707,3 +707,47 @@ input,select,textarea{accent-color:#346bcb}.panel h2{letter-spacing:-.02em}
 
 /* PPC 5.0.5 — Cartoes pessoais compactos */
 .pc-layout{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}.pc-layout .panel{min-width:0}.pc-layout h3,.pc-section h3{font:700 14px Manrope;margin:0 0 14px}.pc-layout label,.pc-inner label,.pc-section label{display:block;font:600 11px 'DM Sans';color:#475467;margin:0 0 12px}.pc-layout input,.pc-layout select,.pc-section input,.pc-section select{width:100%;display:block;margin-top:6px;border:1px solid #dfe3e9;border-radius:8px;padding:10px;background:#fff;color:#344054;font:12px 'DM Sans'}.pc-layout .pc-check{display:flex;align-items:center;gap:10px;padding-top:28px}.pc-check input{width:auto;display:inline-block;margin:0}.pc-section{margin-top:14px}.pc-inner{background:#f8fafd;border:1px solid #edf0f4;border-radius:10px;padding:16px;min-width:0}.pc-cards-list{display:grid;gap:12px}.pc-mini-card{border:1px solid #e5ebf2;padding:12px;border-radius:12px}.pc-mini-card header{display:flex;justify-content:space-between;align-items:start;gap:8px}.pc-mini-card strong{font:700 14px Manrope}.pc-mini-card small{display:block;font-size:10px;color:#667085;margin-top:4px}.pc-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}.pc-values small{font-size:10px;color:#667085}.pc-values b{font:700 13px Manrope;display:block;word-break:break-word;margin-top:4px}.pc-meter{height:6px;background:#e6ebf4;border-radius:20px;overflow:hidden}.pc-meter i{display:block;height:100%;background:#577cde;border-radius:20px}.pc-section table{white-space:normal}.pc-section td{vertical-align:middle}.pc-section .ppc-toolbar{display:flex;justify-content:space-between;gap:14px;align-items:center}.pc-section .ppc-toolbar label{min-width:170px}@media(max-width:760px){.pc-layout{grid-template-columns:1fr}.pc-values{gap:6px}.pc-values b{font-size:11px}.pc-section .ppc-toolbar{display:block}}
+
+/* PPC 5.0.6 — cartoes modernos e compactos (somente escopo PPC) */
+#view-personal-cards .pc-top-layout{grid-template-columns:minmax(285px,.86fr) minmax(340px,1.14fr);align-items:start;gap:12px;margin:10px 0}
+#view-personal-cards .pc-compact-panel{padding:14px 16px;border-radius:14px;box-shadow:0 2px 12px rgba(23,52,88,.035)}
+#view-personal-cards .pc-compact-panel h3{margin-bottom:9px;font-size:13px}
+#view-personal-cards .pc-layout label,#view-personal-cards .pc-inner label{margin-bottom:7px;font-size:11px}
+#view-personal-cards .pc-layout input,#view-personal-cards .pc-layout select,#view-personal-cards .pc-section input,#view-personal-cards .pc-section select{padding:7px 9px;margin-top:4px;border-radius:8px}
+#view-personal-cards .pc-layout .form-row{gap:8px}
+#view-personal-cards .pc-layout .pc-check{padding-top:20px;margin-bottom:6px}
+#view-personal-cards .pc-layout .pc-inner{padding:12px 13px;border-radius:10px}
+#view-personal-cards .pc-mini-card{padding:10px 12px;background:linear-gradient(120deg,#fff 70%,#f6f9ff);border-color:#dfe7f1}
+#view-personal-cards .pc-mini-card header small{font-size:10px;line-height:1.4}
+#view-personal-cards .pc-mini-card header button{font-size:11px;padding:5px 8px}
+#view-personal-cards .pc-values{gap:8px;margin:8px 0}
+#view-personal-cards .pc-values b{font-size:12px;margin-top:2px}
+#view-personal-cards .pc-cards-list{gap:8px;max-height:360px;overflow:auto}
+#view-personal-cards .pc-meter{height:5px}
+#view-personal-cards .pc-section{margin-top:10px}
+#view-personal-cards .pc-section .ppc-toolbar{margin-bottom:10px;gap:10px}
+#view-personal-cards .pc-section .ppc-toolbar p{font-size:11px;margin:3px 0 0}
+#view-personal-cards .pc-section .ppc-toolbar label{margin:0}
+#view-personal-cards .pc-section .pc-inner h3{margin-bottom:10px}
+#view-personal-cards .pc-section .pc-inner .primary-btn,#view-personal-cards .pc-top-layout .primary-btn{padding:8px 12px;font-size:12px}
+#view-personal-cards .pc-report-panel{padding:16px}
+#view-personal-cards .pc-report-filters{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+#view-personal-cards .pc-report-filters label{min-width:105px;max-width:230px;font-size:10px}
+#view-personal-cards .pc-report-filters select,#view-personal-cards .pc-report-filters input{min-width:105px;max-width:230px}
+#view-personal-cards .pc-report-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:9px 0 14px}
+#view-personal-cards .pc-report-totals>div{padding:10px 13px;border:1px solid #e6edf6;border-radius:11px;background:#f7faff}
+#view-personal-cards .pc-report-totals small{font-size:10px;color:#667085;display:block;margin-bottom:3px}
+#view-personal-cards .pc-report-totals strong{font:750 16px Manrope,sans-serif;color:#173458;overflow-wrap:anywhere}
+#view-personal-cards .pc-report-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+#view-personal-cards .pc-report-grid h4{font:700 12px Manrope;margin:0 0 8px}
+#view-personal-cards .pc-chart-wrap{height:205px;position:relative}
+#view-personal-cards .pc-chart-wrap canvas{max-width:100%;max-height:100%}
+.pc-compact-categories{display:grid;gap:4px;margin-top:9px;max-height:176px;overflow:auto}
+.pc-compact-categories .pc-cat-row{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #edf1f6;font-size:11px}
+.pc-compact-categories .pc-cat-row b{white-space:nowrap}
+.pc-help{color:#667085;font-size:11px;line-height:1.5;margin:10px 0 0}
+#view-ppc .pc-ppc-insights{margin:14px 0;padding:15px 18px}
+#view-ppc .pc-insights-content{display:grid;grid-template-columns:150px 1fr;align-items:start;gap:14px}
+#view-ppc #pcWalletPurchasesTotal{font:750 20px Manrope,sans-serif;color:#173458}
+@media(max-width:860px){#view-personal-cards .pc-top-layout{grid-template-columns:1fr}#view-personal-cards .pc-report-grid{grid-template-columns:1fr}#view-personal-cards .pc-report-totals{grid-template-columns:1fr 1fr}#view-ppc .pc-insights-content{grid-template-columns:1fr}}
+@media(max-width:540px){#view-personal-cards .pc-report-totals{grid-template-columns:1fr}#view-personal-cards .pc-report-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#view-personal-cards .pc-report-filters label,#view-personal-cards .pc-report-filters select,#view-personal-cards .pc-report-filters input{width:100%;min-width:0}}
