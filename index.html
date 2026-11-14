@@ -198,6 +198,38 @@
         <div class="ppc-metrics"><article><small>Receitas pessoais no mês</small><strong id="ppcIncome">R$ 0,00</strong></article><article><small>Despesas pessoais no mês</small><strong id="ppcExpense">R$ 0,00</strong></article><article><small>Saldo pessoal no mês</small><strong id="ppcBalance">R$ 0,00</strong></article></div>
         <article class="panel"><div class="ppc-toolbar"><h3>Minhas movimentações</h3><label for="ppcPeriod">Período <input type="month" id="ppcPeriod"></label></div><div class="table-scroll"><table><thead><tr><th>DATA</th><th>DESCRIÇÃO</th><th>TIPO / CATEGORIA</th><th class="right">VALOR</th><th>VISIBILIDADE / AÇÕES</th></tr></thead><tbody id="ppcRows"><tr><td colspan="5">Aguardando acesso à carteira…</td></tr></tbody></table></div></article>
         <article class="panel ppc-family-shares"><div class="ppc-toolbar"><div><h3>Compartilhamentos da família</h3><p>Somente lançamentos autorizados por Xavier ou Talita · não entram no acerto 50/50</p></div><button type="button" class="outline-btn" id="ppcRefreshShares">Atualizar</button></div><p id="ppcShareStatus" role="status" class="ppc-private-note"></p><div class="table-scroll"><table><thead><tr><th>DATA</th><th>DESCRIÇÃO</th><th>QUEM COMPARTILHOU</th><th>CATEGORIA / TIPO</th><th class="right">VALOR</th></tr></thead><tbody id="ppcFamilyRows"><tr><td colspan="5">Carregando compartilhamentos autorizados…</td></tr></tbody></table></div></article>
+        <article class="panel ppc-payroll" id="ppcPayrollSection">
+          <div class="ppc-toolbar"><div><h3>Contracheque inteligente</h3><p>Competência e pagamento separados · histórico fechado não é recalculado</p></div><button type="button" class="outline-btn" id="payrollRefresh">Atualizar</button></div>
+          <div id="payrollMessage" class="ppc-feedback" role="status"></div>
+          <div class="payroll-grid">
+            <div class="payroll-card">
+              <h3>Configuração de soldo e índices</h3>
+              <form id="payrollConfigForm">
+                <div class="form-row"><label>Vigência a partir da competência<input type="month" id="payrollEffective" required></label><label>Graduação / posto<input id="payrollRank" maxlength="100" required placeholder="Segundo-Sargento"></label></div>
+                <label>Soldo-base (R$)<input id="payrollBase" type="number" step="0.01" min="0.01" required></label>
+                <div id="payrollRates"></div>
+                <button type="submit" class="primary-btn">Salvar nova vigência</button>
+              </form>
+              <p class="ppc-private-note">Cada alteração cria uma vigência nova. Nenhuma configuração antiga pode ser editada. Não altera contracheques já salvos.</p>
+              <div id="payrollConfigHistory" class="payroll-history"></div>
+            </div>
+            <div class="payroll-card">
+              <h3>Preenchimento mensal</h3>
+              <form id="payrollSlipForm">
+                <div class="form-row"><label>Competência<input id="payrollMonth" type="month" required></label><label>Data real do pagamento<input id="payrollPaid" type="date" required></label></div>
+                <div class="payroll-actions"><button type="button" class="outline-btn" id="payrollPrepare">Carregar índices</button><button type="button" class="outline-btn" id="payrollCopy">Copiar rubricas anteriores</button></div>
+                <p id="payrollCurrentConfig" class="ppc-private-note">Selecione a competência.</p>
+                <div id="payrollItems"></div>
+                <button type="button" class="outline-btn" id="payrollAddIncome">+ Rendimento</button> <button type="button" class="outline-btn" id="payrollAddDeduction">+ Desconto</button>
+                <div class="payroll-totals"><div>Bruto <strong id="payrollGross">R$ 0,00</strong></div><div>Descontos <strong id="payrollDeductions">R$ 0,00</strong></div><div>Líquido calculado <strong id="payrollNet">R$ 0,00</strong></div></div>
+                <label>Líquido impresso no contracheque (R$)<input id="payrollExpectedNet" type="number" min="0" step="0.01" required></label>
+                <p id="payrollDifference" class="ppc-private-note"></p>
+                <div class="payroll-actions"><button type="button" class="outline-btn" id="payrollDraft">Salvar rascunho</button><button type="submit" class="primary-btn">Conferir e confirmar</button></div>
+              </form>
+            </div>
+          </div>
+          <div class="payroll-card payroll-reports"><h3>Relatório de rubricas do contracheque</h3><div class="form-row"><label>Filtro<input type="month" id="payrollReportMonth"></label><label>Ano<input type="number" id="payrollReportYear" min="2000" max="2100"></label></div><div class="payroll-grid"><div><h4>Competência escolhida por categoria</h4><canvas id="payrollMonthChart" height="180"></canvas></div><div><h4>Acumulado anual por categoria</h4><canvas id="payrollYearChart" height="180"></canvas></div></div><p class="ppc-private-note">Gráficos por competência. Rendimentos e descontos são separados; não são somados novamente ao saldo do PPC ou ao acerto familiar. Não incluem lançamentos manuais da carteira.</p></div>
+        </article>
         <p class="ppc-private-note">🔒 Privacidade: só os lançamentos marcados como compartilhados ficam visíveis para a família. Esse compartilhamento é informativo e NÃO altera receitas, despesas ou acerto 50/50 do PFC. Importação de registros antigos ainda não está habilitada.</p>
       </section>
       <section class="view" id="view-categories">
@@ -236,5 +268,5 @@
 <div class="form-row"><label>Categoria<select name="category" id="ppcCategory" required></select></label><label>Data<input name="entry_date" type="date" required /></label></div>
 <label>Observações (privadas)<input name="notes" maxlength="500" placeholder="Opcional" /></label>
 <div class="modal-actions"><button type="button" class="outline-btn" id="ppcModalCancel">Cancelar</button><button type="submit" class="primary-btn" id="ppcSubmit">Salvar</button></div></form></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="app.js"></script><script src="cards.js"></script><script src="reports.js"></script><script src="corrections.js"></script><script src="settlement_cancel.js"></script><script src="recurring.js"></script><script src="admin.js"></script><script src="ppc.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="app.js"></script><script src="cards.js"></script><script src="reports.js"></script><script src="corrections.js"></script><script src="settlement_cancel.js"></script><script src="recurring.js"></script><script src="admin.js"></script><script src="ppc.js"></script><script src="payroll.js"></script>
 </body></html>
