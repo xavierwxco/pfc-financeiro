@@ -29,18 +29,24 @@
   {kind:'deduction',name:'Imposto de renda',category:'Impostos',amount:0},
   {kind:'deduction',name:'IR adicional natalino',category:'Impostos',amount:0}
  ];
- let userId=null,configs=[],slips=[],currentConfig=null,loadedId=null,charts=[],items=[];
+ let userId=null,configs=[],slips=[],currentConfig=null,loadedId=null,charts=[],items=[],activeCategories={income:[],deduction:[]},walletLinks=[],incomeEntries=[];
  const info=msg=>{if($('payrollMessage'))$('payrollMessage').textContent=msg||''};
  const defaultPaid=m=>{let [y,mm]=m.split('-').map(Number);return new Date(Date.UTC(y,mm,5)).toISOString().slice(0,10)};
  function fillRates(){const c=configs[0];$('payrollRates').innerHTML=DEFINITIONS.map(d=>`<div class="payroll-rate"><label for="payrollRate_${d.key}">${esc(d.name)} (%)</label><input id="payrollRate_${d.key}" type="number" min="0" max="200" step="0.01" value="${c?.rates?.[d.key]??d.pct}" required></div>`).join('');if(c){$('payrollRank').value=c.rank_name;$('payrollBase').value=c.base_salary;}}
  async function load(){const owner=window.PFC_CURRENT_USER?.id;if(!owner)return;userId=owner;
-  try{const [c,s]=await Promise.all([
+  try{const [c,s,cat,links,tx]=await Promise.all([
     sb.from('ppc_payroll_configs').select('*').eq('owner_user_id',owner).order('effective_month',{ascending:false}),
-    sb.from('ppc_payroll_slips').select('*').eq('owner_user_id',owner).order('competence',{ascending:false})]);
-   if(c.error)throw c.error;if(s.error)throw s.error;if(userId!==owner)return;
-   configs=c.data||[];slips=s.data||[];fillRates();
+    sb.from('ppc_payroll_slips').select('*').eq('owner_user_id',owner).order('competence',{ascending:false}),
+    sb.from('pfc_categories').select('kind,name').eq('household_id',window.PFC_CONFIG.householdId).eq('active',true),
+    sb.from('ppc_payroll_wallet_links').select('slip_id,transaction_id,link_method').eq('owner_user_id',owner),
+    sb.from('ppc_transactions').select('id,kind,entry_date,category,amount,description').eq('owner_user_id',owner).eq('kind','income')]);
+   for(const r of [c,s,cat,links,tx])if(r.error)throw r.error;
+   if(userId!==owner)return;
+   configs=c.data||[];slips=s.data||[];walletLinks=links.data||[];incomeEntries=tx.data||[];
+   activeCategories={income:(cat.data||[]).filter(x=>x.kind==='income').map(x=>x.name),deduction:(cat.data||[]).filter(x=>x.kind==='expense').map(x=>x.name)};
+   fillRates();
    $('payrollConfigHistory').innerHTML=configs.length?'<strong>Histórico imutável de vigências</strong>'+configs.map(x=>`<p>${esc(x.effective_month.slice(0,7))} · ${esc(x.rank_name)} · ${money(Number(x.base_salary))}</p>`).join(''):'Nenhuma configuração cadastrada.';
-   drawReports();
+   drawReports();refreshWalletIntegration();
   }catch(e){info('Não foi possível carregar contracheques: '+e.message)}
  }
  function applicable(month){return configs.find(x=>x.effective_month<=monthFirst(month))||null}
@@ -48,7 +54,16 @@
  function pullItems(){const root=$('payrollItems');for(const [i,x] of [...root.querySelectorAll('.payroll-line')].entries()){
   items[i]={...items[i],name:x.querySelector('.line-name').value,category:x.querySelector('.line-category').value,amount:rounded(Number(x.querySelector('.line-amount').value))};}
  }
- function drawItems(){const root=$('payrollItems');root.innerHTML=items.map((x,i)=>`<div class="payroll-line" data-i="${i}"><span class="payroll-type">${x.kind==='income'?'RENDIMENTO':'DESCONTO'}</span><input aria-label="Rubrica" class="line-name" maxlength="120" value="${esc(x.name)}"><input aria-label="Categoria" class="line-category" maxlength="80" value="${esc(x.category)}"><input aria-label="Valor" class="line-amount" type="number" min="0" max="99999999999" step="0.01" value="${Number(x.amount||0).toFixed(2)}"><button type="button" aria-label="Remover rubrica" data-remove="${i}">×</button></div>`).join('');calc()}
+ function categoryFor(x){const options=activeCategories[x.kind]||[];
+  if(options.includes(x.category))return x.category;
+  const preferred={'Benefícios':'Outros','Previdência':'Outros','Impostos':'Outros'}[x.category];
+  if(preferred&&options.includes(preferred))return preferred;
+  return options.find(c=>c.toLocaleLowerCase('pt-BR')===String(x.category).toLocaleLowerCase('pt-BR')) || (options.includes('Outros')?'Outros':(options[0]||x.category));
+ }
+ function drawItems(){const root=$('payrollItems');root.innerHTML=items.map((x,i)=>{const options=activeCategories[x.kind]||[];
+  const choices=[...new Set([x.category,...options])];
+  return `<div class="payroll-line" data-i="${i}"><span class="payroll-type">${x.kind==='income'?'RENDIMENTO':'DESCONTO'}</span><input aria-label="Rubrica" class="line-name" maxlength="120" value="${esc(x.name)}"><select aria-label="Categoria da carteira" class="line-category">${choices.map(c=>`<option value="${esc(c)}" ${c===x.category?'selected':''}>${esc(c)}${options.includes(c)?'':' (categoria histórica)'}</option>`).join('')}</select><input aria-label="Valor" class="line-amount" type="number" min="0" max="99999999999" step="0.01" value="${Number(x.amount||0).toFixed(2)}"><button type="button" aria-label="Remover rubrica" data-remove="${i}">×</button></div>`;}).join('');calc()}
+
  function calc(){let inc=0,ded=0;for(const x of items){if(x.kind==='income')inc+=Number(x.amount||0);else ded+=Number(x.amount||0)}
   $('payrollGross').textContent=money(inc);$('payrollDeductions').textContent=money(ded);$('payrollNet').textContent=money(inc-ded);
   const expected=$('payrollExpectedNet').value;
@@ -58,10 +73,10 @@
  function applyMonth(copy){const month=$('payrollMonth').value;if(!month)return;const existing=slips.find(x=>x.competence===monthFirst(month));loadedId=existing?.id||null;
   if(existing){currentConfig={rank_name:existing.rank_snapshot,base_salary:existing.base_salary_snapshot,rates:existing.rates_snapshot};items=(existing.items||[]).map(x=>({...x}));$('payrollPaid').value=existing.payment_date;$('payrollExpectedNet').value=existing.net_total;
    $('payrollCurrentConfig').textContent=`${existing.status==='confirmed'?'CONFIRMADO · SOMENTE LEITURA':'RASCUNHO'} · ${existing.rank_snapshot} · Soldo ${money(Number(existing.base_salary_snapshot))}. Valores congelados na competência.`;
-   lock(existing.status==='confirmed');drawItems();return;
+   lock(existing.status==='confirmed');drawItems();refreshWalletIntegration();return;
   }
   currentConfig=applicable(month);lock(false);$('payrollPaid').value=defaultPaid(month);$('payrollExpectedNet').value='';
-  if(!currentConfig){items=[];drawItems();$('payrollCurrentConfig').textContent='Nenhuma configuração de soldo vigente nessa competência. Cadastre primeiro a vigência.';return;}
+  if(!currentConfig){items=[];drawItems();refreshWalletIntegration();$('payrollCurrentConfig').textContent='Nenhuma configuração de soldo vigente nessa competência. Cadastre primeiro a vigência.';return;}
   const base=Number(currentConfig.base_salary);
   const prior=copy?slips.find(x=>x.competence<monthFirst(month)):null;
   // Rubricas adicionais copiadas apenas no comando explícito; eventuais não são copiadas por padrão.
@@ -71,8 +86,9 @@
     if(/natalino|férias/i.test(x.name))return x;
     const previous=map.get(x.kind+'|'+x.name);return previous?{...x,amount:Number(previous.amount)}:x;
   });}
+  items=items.map(x=>({...x,category:categoryFor(x)}));
   $('payrollCurrentConfig').textContent=`Vigência ${currentConfig.effective_month.slice(0,7)} · ${currentConfig.rank_name} · Soldo ${money(base)}. Índices usados: ${DEFINITIONS.map(d=>`${d.name}: ${currentConfig.rates[d.key]??0}%`).join(' | ')}`;
-  drawItems();
+  drawItems();refreshWalletIntegration();
  }
  function lock(locked){for(const x of $('payrollSlipForm').querySelectorAll('input,button'))if(x.id!=='payrollMonth')x.disabled=locked;
   for(const x of [$('payrollAddIncome'),$('payrollAddDeduction'),$('payrollCopy'),$('payrollPrepare')])x.disabled=locked;
@@ -111,13 +127,39 @@
  $('payrollConfigForm').addEventListener('submit',e=>void saveConfig(e));
  $('payrollPrepare').addEventListener('click',()=>applyMonth(false));$('payrollCopy').addEventListener('click',()=>applyMonth(true));
  $('payrollMonth').addEventListener('change',()=>applyMonth(false));
- $('payrollAddIncome').addEventListener('click',()=>{pullItems();addLine({kind:'income',name:'Nova rubrica',category:'Outros',amount:0})});
- $('payrollAddDeduction').addEventListener('click',()=>{pullItems();addLine({kind:'deduction',name:'Novo desconto',category:'Outros',amount:0})});
+ $('payrollAddIncome').addEventListener('click',()=>{pullItems();addLine({kind:'income',name:'Nova rubrica',category:categoryFor({kind:'income',category:'Outros'}),amount:0})});
+ $('payrollAddDeduction').addEventListener('click',()=>{pullItems();addLine({kind:'deduction',name:'Novo desconto',category:categoryFor({kind:'deduction',category:'Outros'}),amount:0})});
  $('payrollItems').addEventListener('input',()=>{pullItems();calc()});
  $('payrollItems').addEventListener('click',e=>{const b=e.target.closest('[data-remove]');if(!b)return;pullItems();items.splice(Number(b.dataset.remove),1);drawItems()});
  $('payrollExpectedNet').addEventListener('input',calc);
  $('payrollDraft').addEventListener('click',()=>void saveSlip(false));$('payrollSlipForm').addEventListener('submit',e=>{e.preventDefault();void saveSlip(true)});
  $('payrollRefresh').addEventListener('click',()=>void load());$('payrollReportMonth').addEventListener('change',drawReports);$('payrollReportYear').addEventListener('change',drawReports);
+ function refreshWalletIntegration(){const root=$('payrollWalletIntegration');if(!root)return;
+  const month=$('payrollMonth').value;const slip=slips.find(x=>x.competence===monthFirst(month));
+  if(!slip||slip.status!=='confirmed'){
+   root.innerHTML='<p class="ppc-private-note">Confirme o contracheque para vincular o líquido à carteira. Não cria despesas dos descontos.</p>';return;
+  }
+  const link=walletLinks.find(x=>x.slip_id===slip.id);
+  if(link){root.innerHTML=`<p class="ppc-linked-ok">✓ Receita líquida vinculada à carteira (${money(Number(slip.net_total))}) · ${esc(slip.payment_date)}. Não pode ser editada/excluída pela carteira; compartilhamento opcional em Minhas movimentações.</p>`;return;}
+  const matches=incomeEntries.filter(t=>t.entry_date===slip.payment_date && Number(t.amount)===Number(slip.net_total) && String(t.category).toLocaleLowerCase('pt-BR')==='salário');
+  root.innerHTML=`<p class="ppc-private-note">Líquido ${money(Number(slip.net_total))} · pagamento ${esc(slip.payment_date)}. Só uma receita poderá ser vinculada.</p>`+
+  (matches.length?`<label>Vincular receita que já está na carteira<select id="payrollExistingIncome"><option value="">Selecione uma receita</option>${matches.map(t=>`<option value="${esc(t.id)}">${esc(t.description)} · ${esc(t.category)} · ${money(Number(t.amount))}</option>`).join('')}</select></label><button class="outline-btn" type="button" id="payrollLinkExisting">Vincular sem duplicar</button>`:'')+
+  '<button type="button" class="primary-btn" id="payrollPostNet">Registrar líquido uma única vez na carteira</button>';
+  const btn=$('payrollPostNet');btn.addEventListener('click',()=>void integrate(slip.id,null));
+  $('payrollLinkExisting')?.addEventListener('click',()=>{const id=$('payrollExistingIncome').value;if(!id)return info('Selecione uma receita existente.');void integrate(slip.id,id)});
+ }
+ async function integrate(slipId,existing){if(!userId)return;
+  const prompt=existing?'Vincular a receita já existente ao contracheque, sem criar outra?':
+    'Criar UMA receita do salário líquido na carteira? Confira antes se já lançou o mesmo salário manualmente.';
+  if(!confirm(prompt))return;
+  for(const b of $('payrollWalletIntegration').querySelectorAll('button'))b.disabled=true;
+  try{const result=existing?await sb.rpc('ppc_payroll_link_existing',{p_slip_id:slipId,p_transaction_id:existing}):await sb.rpc('ppc_payroll_post_net',{p_slip_id:slipId});
+   if(result.error)throw result.error;
+   await load();info('Salário líquido vinculado sem duplicidade. Se desejar, compartilhe essa receita na carteira PPC.');
+   window.dispatchEvent(new Event('ppc:wallet-changed')); // atualiza a carteira, sem reinicializar o contracheque
+  }catch(e){info('Não foi possível integrar: '+e.message);refreshWalletIntegration();}
+ }
+ $('payrollMonth').addEventListener('change',refreshWalletIntegration);
  window.addEventListener('pfc:ready',()=>{userId=null;configs=[];slips=[];currentConfig=null;items=[];drawItems();void load()});
  sb?.auth?.onAuthStateChange(e=>{if(e==='SIGNED_OUT'){userId=null;configs=[];slips=[];items=[];currentConfig=null;drawItems();drawReports();}});
 })();
