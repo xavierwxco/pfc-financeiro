@@ -674,3 +674,24 @@ input,select,textarea{accent-color:#346bcb}.panel h2{letter-spacing:-.02em}
 #view-ppc .ppc-family-shares h3{font-size:14px}
 #view-ppc .ppc-row-actions button:last-child{color:#b42318}
 .ppc-family-dash{margin-bottom:16px}
+
+/* PPC 5.0.3 — contracheque e indices */
+#view-ppc .ppc-payroll{margin-top:16px}
+#view-ppc .ppc-payroll .ppc-toolbar p{font-size:11px;color:#64748b;margin:5px 0 0}
+.payroll-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.payroll-card{background:#fff;border:1px solid #e4eaf3;border-radius:12px;padding:16px;margin-top:12px;min-width:0}
+.payroll-card h3{font-size:14px;margin:0 0 14px}
+.payroll-card h4{font-size:12px}
+.payroll-card input,.payroll-card select{width:100%;padding:8px;border:1px solid #dce5f0;border-radius:7px;background:white;color:#173458;min-width:0}
+.payroll-card label{display:block;font-size:11px;color:#53657e;margin-bottom:8px}
+.payroll-card .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.payroll-rate{display:grid;grid-template-columns:1fr 90px;align-items:center;gap:8px;margin:7px 0;font-size:12px}
+.payroll-actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.payroll-line{display:grid;grid-template-columns:1fr 135px 90px 120px 32px;gap:6px;margin:7px 0;align-items:center}
+.payroll-line .payroll-type{font-size:10px}
+.payroll-line button{border:1px solid #e1e8f3;background:#fff;color:#b42318;border-radius:6px;cursor:pointer;padding:7px}
+.payroll-totals{border-top:1px solid #dde6f0;border-bottom:1px solid #dde6f0;padding:9px 0;margin:12px 0}
+.payroll-totals div{display:flex;justify-content:space-between;font-size:12px;padding:4px 0}
+.payroll-history{font-size:11px;color:#52627a;margin-top:10px}
+.payroll-reports{margin-top:16px}
+@media(max-width:960px){.payroll-grid{grid-template-columns:1fr}.payroll-line{grid-template-columns:1fr 1fr}.payroll-line .payroll-type{grid-column:1 / -1}}
