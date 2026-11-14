@@ -30,6 +30,7 @@
       <a class="nav-item" href="#reports" data-view="reports"><span>▥</span> Relatórios</a>
       <p class="nav-label">CARTEIRA PESSOAL</p>
       <a class="nav-item" href="#ppc" data-view="ppc"><span aria-hidden="true">▱</span> Minha carteira (PPC)</a>
+      <a class="nav-item" href="#personal-cards" data-view="personal-cards"><span aria-hidden="true">▣</span> Meus cartões (PPC)</a>
       <p class="nav-label">CONFIGURAÇÕES</p>
       <a class="nav-item" href="#categories" data-view="categories"><span>◇</span> Categorias</a>
       <a class="nav-item" href="#settings" data-view="settings"><span>⚙</span> Configurações</a>
@@ -233,6 +234,33 @@
         </article>
         <p class="ppc-private-note">🔒 Privacidade: só os lançamentos marcados como compartilhados ficam visíveis para a família. Esse compartilhamento é informativo e NÃO altera receitas, despesas ou acerto 50/50 do PFC. Importação de registros antigos ainda não está habilitada.</p>
       </section>
+      <section class="view" id="view-personal-cards">
+        <div class="ppc-heading"><div><h2>Meus cartões pessoais</h2><p>Nubank e outros cartões exclusivos da sua carteira. Nenhum valor é automaticamente lançado no PPC ou no PFC da família.</p></div><button class="outline-btn" id="personalCardsRefresh" type="button">Atualizar</button></div>
+        <p id="personalCardsMessage" class="ppc-feedback" role="status" aria-live="polite"></p>
+        <div class="pc-layout">
+          <article class="panel"><h3>Cadastro do cartão</h3><form id="pcCardForm">
+            <label>Nome do cartão<input id="pcName" maxlength="80" placeholder="Ex.: Nubank Xavier" required></label>
+            <div class="form-row"><label>Limite total (R$)<input id="pcLimit" type="number" min="0" step="0.01" required></label><label>Dia de fechamento (1–28)<input id="pcClosing" type="number" min="1" max="28" required></label></div>
+            <div class="form-row"><label>Dia de vencimento (1–28)<input id="pcDue" type="number" min="1" max="28" required></label><label class="pc-check"><input id="pcActive" type="checkbox" checked> Cartão ativo</label></div>
+            <button id="pcSaveCard" class="primary-btn" type="submit">Salvar cartão</button> <button id="pcCancelEdit" class="outline-btn" type="button">Limpar formulário</button>
+          </form></article>
+          <article class="panel"><h3>Limites dos meus cartões</h3><div id="personalCardsList" class="pc-cards-list">Carregando…</div></article>
+        </div>
+        <article class="panel pc-section"><div class="ppc-toolbar"><div><h3>Compras e faturas</h3><p>Os valores são privados e não alteram o acerto familiar 50/50.</p></div><label>Cartão<select id="pcCardSelect"><option value="">Selecione</option></select></label></div>
+          <div class="pc-layout"><form id="pcPurchaseForm" class="pc-inner"><h3>Registrar compra</h3><label>Descrição<input id="pcDescription" maxlength="160" required></label>
+            <div class="form-row"><label>Valor total (R$)<input id="pcPurchaseAmount" type="number" min="0.01" step="0.01" required></label><label>Parcelas<input id="pcCount" type="number" min="1" max="48" value="1" required></label></div>
+            <label>Categoria de despesa<select id="pcCategory" required></select></label>
+            <div class="form-row"><label>Data da compra<input id="pcPurchaseDate" type="date" required></label><label>Primeira fatura (mês/ano)<input id="pcFirstMonth" type="month" required></label></div>
+            <button id="pcPurchaseSave" class="primary-btn" type="submit">Registrar compra pessoal</button></form>
+            <form id="pcPaymentForm" class="pc-inner"><h3>Registrar pagamento parcial ou total</h3><label>Fatura<select id="pcInvoiceMonth" required></select></label>
+            <div class="form-row"><label>Valor pago (R$)<input id="pcPaymentAmount" type="number" min="0.01" step="0.01" required></label><label>Data do pagamento<input id="pcPaidOn" type="date" required></label></div>
+            <button id="pcPaySave" class="primary-btn" type="submit">Registrar pagamento</button><p class="ppc-private-note">Pagamento não gera nova despesa. Estornos precisam de motivo.</p></form></div>
+        </article>
+        <article class="panel pc-section"><h3>Minhas faturas</h3><div class="table-scroll"><table><thead><tr><th>FATURA</th><th>TOTAL</th><th>PAGO</th><th>PENDENTE</th><th>STATUS</th></tr></thead><tbody id="personalInvoices"></tbody></table></div></article>
+        <article class="panel pc-section"><h3>Compras do cartão selecionado</h3><div class="table-scroll"><table><thead><tr><th>DATA</th><th>DESCRIÇÃO</th><th>CATEGORIA</th><th>PARCELAS</th><th>VALOR</th></tr></thead><tbody id="personalPurchases"></tbody></table></div></article>
+        <article class="panel pc-section"><h3>Pagamentos e estornos</h3><div class="table-scroll"><table><thead><tr><th>PAGO EM</th><th>FATURA</th><th>VALOR</th><th>AÇÃO</th></tr></thead><tbody id="personalPayments"></tbody></table></div></article>
+        <p class="ppc-private-note">Os valores de limite refletem apenas compras cadastradas neste módulo. Compras anteriores não importadas, juros, encargos e transações do banco podem causar diferenças. Não lance o pagamento da fatura novamente como despesa de consumo.</p>
+      </section>
       <section class="view" id="view-categories">
   <article class="panel p46-panel">
     <div class="panel-head"><div><h2>Plano de categorias</h2><p>Receitas e despesas separadas, com histórico preservado.</p></div><button class="primary-btn" id="p46AddCategory" type="button" hidden>＋ Nova categoria</button></div>
@@ -269,5 +297,5 @@
 <div class="form-row"><label>Categoria<select name="category" id="ppcCategory" required></select></label><label>Data<input name="entry_date" type="date" required /></label></div>
 <label>Observações (privadas)<input name="notes" maxlength="500" placeholder="Opcional" /></label>
 <div class="modal-actions"><button type="button" class="outline-btn" id="ppcModalCancel">Cancelar</button><button type="submit" class="primary-btn" id="ppcSubmit">Salvar</button></div></form></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="app.js"></script><script src="cards.js"></script><script src="reports.js"></script><script src="corrections.js"></script><script src="settlement_cancel.js"></script><script src="recurring.js"></script><script src="admin.js"></script><script src="ppc.js"></script><script src="payroll.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="app.js"></script><script src="cards.js"></script><script src="reports.js"></script><script src="corrections.js"></script><script src="settlement_cancel.js"></script><script src="recurring.js"></script><script src="admin.js"></script><script src="ppc.js"></script><script src="payroll.js"></script><script src="personal_cards.js"></script>
 </body></html>
