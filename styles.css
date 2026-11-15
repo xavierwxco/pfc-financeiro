@@ -751,3 +751,15 @@ input,select,textarea{accent-color:#346bcb}.panel h2{letter-spacing:-.02em}
 #view-ppc #pcWalletPurchasesTotal{font:750 20px Manrope,sans-serif;color:#173458}
 @media(max-width:860px){#view-personal-cards .pc-top-layout{grid-template-columns:1fr}#view-personal-cards .pc-report-grid{grid-template-columns:1fr}#view-personal-cards .pc-report-totals{grid-template-columns:1fr 1fr}#view-ppc .pc-insights-content{grid-template-columns:1fr}}
 @media(max-width:540px){#view-personal-cards .pc-report-totals{grid-template-columns:1fr}#view-personal-cards .pc-report-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#view-personal-cards .pc-report-filters label,#view-personal-cards .pc-report-filters select,#view-personal-cards .pc-report-filters input{width:100%;min-width:0}}
+
+/* PPC 5.0.7: correcoes de compras e conciliacao */
+#view-personal-cards .pc-actions{white-space:nowrap;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+#view-personal-cards .pc-actions .outline-btn{padding:5px 8px;font-size:11px}
+#view-personal-cards .pc-cancel-tag{color:#b54708;font-weight:700}
+#view-personal-cards .pc-reconcile-totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+#view-personal-cards .pc-reconcile-totals>div{background:#f6f9fd;border:1px solid #e7edf6;border-radius:10px;padding:9px 12px;font-size:12px;display:flex;justify-content:space-between;gap:10px}
+#view-personal-cards .pc-reconcile-controls{display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:end}
+#view-personal-cards .pc-reconcile-controls label{margin:0;font-size:11px}
+#view-personal-cards .pc-reconcile-controls button{min-height:36px}
+@media(max-width:850px){#view-personal-cards .pc-reconcile-controls{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){#view-personal-cards .pc-reconcile-totals,#view-personal-cards .pc-reconcile-controls{grid-template-columns:1fr}}
