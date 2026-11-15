@@ -81,5 +81,5 @@ $('pcCancelEdit')?.addEventListener('click',()=>{delete $('pcCardForm').dataset.
 $('personalCardsRefresh')?.addEventListener('click',()=>void load());
 $('pcReportMonth').value=localDate().slice(0,7);$('pcReportYear').value=localDate().slice(0,4);$('pcPurchaseDate').value=localDate();$('pcFirstMonth').value=localDate().slice(0,7);$('pcPaidOn').value=localDate();
 document.querySelector('[data-view="personal-cards"]')?.addEventListener('click',()=>{if($('pageTitle'))$('pageTitle').textContent='Meus cartões pessoais';void load();});
-window.addEventListener('pfc:ready',()=>{reset();void load();});sb?.auth?.onAuthStateChange(event=>{if(event==='SIGNED_OUT')reset();});
+window.addEventListener('pfc:ready',()=>{reset();void load();});window.addEventListener('pfc:navigate',e=>{if(e.detail?.view==='personal-cards')void load();});sb?.auth?.onAuthStateChange(event=>{if(event==='SIGNED_OUT')reset();});
 })();

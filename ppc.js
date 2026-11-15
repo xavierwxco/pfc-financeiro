@@ -55,5 +55,6 @@
  $('ppcPeriod').value=today().slice(0,7);
  window.addEventListener('pfc:ready',()=>{clear();void init();});
  window.addEventListener('ppc:wallet-changed',()=>void init());
+ window.addEventListener('pfc:navigate',e=>{if(e.detail?.view==='ppc')void init();});
  sb?.auth?.onAuthStateChange((event)=>{if(event==='SIGNED_OUT')clear();});
 })();

@@ -139,7 +139,7 @@
           <p id="recurringMessage" role="status" class="cards-help"></p>
         </article>
         <article class="panel rec-editor" id="recurringEditor" hidden>
-          <h2 id="recurringFormTitle">Nova conta recorrente</h2><p class="rec-hint">Mensal ou anual. Edite quando o limite ou vencimento mudar; pagamentos anteriores não são refeitos.</p>
+          <h2 id="recurringFormTitle">Nova conta recorrente</h2><p class="rec-hint">Cada edição terá uma vigência nova. Valores e pagamentos anteriores ficam preservados.</p>
           <form id="recurringForm">
             <input type="hidden" name="recurringId">
             <div class="rec-fields">
@@ -151,6 +151,10 @@
               <label>Frequência<select name="frequency"><option value="monthly">Mensal</option><option value="yearly">Anual</option></select></label>
               <label>Dia de vencimento<input name="dueDay" type="number" min="1" max="31" required value="10"></label>
               <label>Mês inicial<input name="startMonth" type="month" required></label>
+              <label>Duração<select name="durationType" id="recDurationType"><option value="unlimited">Indeterminada</option><option value="finite">Número de cobranças</option></select></label>
+              <label id="recCountWrap" hidden>Quantidade total desde o mês inicial<input name="repeatCount" id="recRepeatCount" type="number" min="1" max="600" value="3"></label>
+              <label id="recEffectiveWrap" hidden>Alteração a partir de<input name="effectiveMonth" type="month"></label>
+              <label id="recReasonWrap" hidden>Motivo da alteração<input name="changeReason" maxlength="300" placeholder="Ex.: reajuste da conta"></label>
             </div>
             <div class="modal-actions"><button type="button" class="outline-btn" id="recurringCancelEdit">Cancelar</button><button class="primary-btn" type="submit">Salvar conta</button></div>
           </form>
@@ -196,6 +200,14 @@
       <section class="view" id="view-ppc" aria-labelledby="ppcSectionTitle">
         <div class="ppc-heading"><div><h2 id="ppcSectionTitle">Minha carteira pessoal</h2><p>Sua carteira é privada por padrão. Você escolhe quais lançamentos compartilhar com a família, sem alterar o acerto 50/50.</p></div><button type="button" id="ppcNewButton" class="primary-btn">＋ Novo lançamento pessoal</button></div>
         <div id="ppcMessage" class="ppc-feedback" role="status" aria-live="polite"></div>
+        <article class="panel ppc508-summary">
+        <div class="ppc-toolbar"><div><h3>Dashboard pessoal consolidado</h3><p>Consumo e caixa separados, com categorias conciliadas sem duplicidade.</p></div>
+        <label>Competência <input type="month" id="p508Month"></label><label>Ano <input type="number" id="p508Year" min="2000" max="2100"></label><button type="button" class="outline-btn" id="p508Refresh">Atualizar</button></div>
+        <p id="p508Status" class="ppc-private-note" role="status"></p>
+        <div class="p508-kpis"><div><small>Receitas recebidas no mês</small><strong id="p508Income">—</strong></div><div><small>Despesas manuais</small><strong id="p508Manual">—</strong></div><div><small>Compras do cartão</small><strong id="p508Cards">—</strong></div><div><small>Consumo consolidado*</small><strong id="p508Consolidated">—</strong></div></div>
+        <div class="p508-charts"><div><h4>Despesas de consumo por categoria</h4><canvas id="p508Categories"></canvas></div><div><h4>Evolução de consumo no ano</h4><canvas id="p508Annual"></canvas></div></div>
+        <p class="ppc-private-note">*Despesas manuais + compras por data da compra − compras vinculadas à despesa manual. Não inclui desconto de contracheque como segunda saída nem soma pagamentos de faturas às compras. Saldo da carteira permanece calculado apenas pelos lançamentos da carteira.</p>
+       </article>
         <div class="ppc-metrics"><article><small>Receitas pessoais no mês</small><strong id="ppcIncome">R$ 0,00</strong></article><article><small>Despesas pessoais no mês</small><strong id="ppcExpense">R$ 0,00</strong></article><article><small>Saldo pessoal no mês</small><strong id="ppcBalance">R$ 0,00</strong></article></div>
         <article class="panel pc-ppc-insights" id="pcWalletInsights"><div class="ppc-toolbar"><div><h3>Gastos de cartões pessoais por categoria</h3><p>Compras dos seus cartões no mês. Informativo: não compõe o saldo pessoal acima.</p></div></div><div class="pc-insights-content"><strong id="pcWalletPurchasesTotal">R$ 0,00</strong><div id="pcWalletCategories" class="pc-compact-categories">Sem compras pessoais neste período.</div></div><p class="pc-help">Para evitar duplicidade, os valores de cartão não são somados automaticamente às despesas manuais PPC. Confira os lançamentos antes de consolidar.</p></article>
         <article class="panel"><div class="ppc-toolbar"><h3>Minhas movimentações</h3><label for="ppcPeriod">Período <input type="month" id="ppcPeriod"></label></div><div class="table-scroll"><table><thead><tr><th>DATA</th><th>DESCRIÇÃO</th><th>TIPO / CATEGORIA</th><th class="right">VALOR</th><th>VISIBILIDADE / AÇÕES</th></tr></thead><tbody id="ppcRows"><tr><td colspan="5">Aguardando acesso à carteira…</td></tr></tbody></table></div></article>
@@ -303,5 +315,5 @@
 <div class="form-row"><label>Categoria<select name="category" id="ppcCategory" required></select></label><label>Data<input name="entry_date" type="date" required /></label></div>
 <label>Observações (privadas)<input name="notes" maxlength="500" placeholder="Opcional" /></label>
 <div class="modal-actions"><button type="button" class="outline-btn" id="ppcModalCancel">Cancelar</button><button type="submit" class="primary-btn" id="ppcSubmit">Salvar</button></div></form></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="app.js"></script><script src="cards.js"></script><script src="reports.js"></script><script src="corrections.js"></script><script src="settlement_cancel.js"></script><script src="recurring.js"></script><script src="admin.js"></script><script src="ppc.js"></script><script src="payroll.js"></script><script src="personal_cards.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="app.js"></script><script src="cards.js"></script><script src="reports.js"></script><script src="corrections.js"></script><script src="settlement_cancel.js"></script><script src="recurring.js"></script><script src="admin.js"></script><script src="ppc.js"></script><script src="payroll.js"></script><script src="personal_cards.js"></script><script src="ppc_dashboard_508.js"></script>
 </body></html>

@@ -161,5 +161,6 @@
  }
  $('payrollMonth').addEventListener('change',refreshWalletIntegration);
  window.addEventListener('pfc:ready',()=>{userId=null;configs=[];slips=[];currentConfig=null;items=[];drawItems();void load()});
+ window.addEventListener('pfc:navigate',e=>{if(e.detail?.view==='ppc')void load();});
  sb?.auth?.onAuthStateChange(e=>{if(e==='SIGNED_OUT'){userId=null;configs=[];slips=[];items=[];currentConfig=null;drawItems();drawReports();}});
 })();

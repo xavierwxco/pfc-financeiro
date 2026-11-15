@@ -763,3 +763,17 @@ input,select,textarea{accent-color:#346bcb}.panel h2{letter-spacing:-.02em}
 #view-personal-cards .pc-reconcile-controls button{min-height:36px}
 @media(max-width:850px){#view-personal-cards .pc-reconcile-controls{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){#view-personal-cards .pc-reconcile-totals,#view-personal-cards .pc-reconcile-controls{grid-template-columns:1fr}}
+
+/* PPC 5.0.8 — painel pessoal compacto e responsivo */
+.ppc508-summary{margin-bottom:16px}.ppc508-summary .ppc-toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.ppc508-summary .ppc-toolbar label{display:flex;align-items:center;gap:7px;font-size:12px}
+.ppc508-summary .ppc-toolbar input{max-width:140px;min-width:110px}
+.p508-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+.p508-kpis>div{padding:12px;border:1px solid var(--border,#e2e8f0);border-radius:12px;min-width:0}
+.p508-kpis small{display:block;color:var(--muted,#64748b);font-size:11px;margin-bottom:4px}
+.p508-kpis strong{font-size:clamp(14px,1.7vw,20px);overflow-wrap:anywhere}
+.p508-charts{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.p508-charts>div{min-width:0;max-height:320px}.p508-charts canvas{max-height:275px}
+.rec-fields #recCountWrap[hidden],.rec-fields #recEffectiveWrap[hidden],.rec-fields #recReasonWrap[hidden]{display:none!important}
+@media(max-width:850px){.p508-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.p508-charts{grid-template-columns:1fr}}
+@media(max-width:520px){.p508-kpis{grid-template-columns:1fr 1fr;gap:6px}.p508-kpis>div{padding:8px}}

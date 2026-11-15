@@ -244,7 +244,10 @@ let recurringDashboardRequest=0;
 function pfcRecDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function pfcRecDateFromString(s){const [y,m,d]=s.slice(0,10).split('-').map(Number);return new Date(y,m-1,d);}
 function pfcRecMonth(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;}
-function summarizeRecurringDashboard(accounts,payments,now=new Date()){
+function summarizeRecurringDashboard(accounts,payments,versions,now=new Date()){
+ const states=new Map();for(const v of versions){const all=states.get(v.recurring_id)||[];all.push(v);states.set(v.recurring_id,all);}
+ for(const a of states.values())a.sort((x,y)=>String(y.effective_month).localeCompare(String(x.effective_month)));
+
  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
  const oldest=new Date(today.getFullYear(),today.getMonth()-12,today.getDate());
  const last=new Date(today.getFullYear(),today.getMonth(),today.getDate()+5);
@@ -252,23 +255,22 @@ function summarizeRecurringDashboard(accounts,payments,now=new Date()){
  const overdue=[],soon=[];
  const start=new Date(oldest.getFullYear(),oldest.getMonth(),1);
  const end=new Date(last.getFullYear(),last.getMonth(),1);
- for(const r of accounts){
-  // A base atual nao guarda data de desativacao; nao projetar meses de contas desativadas.
-  if(r.active!==true)continue;
-  const startMonth=String(r.start_month||'').slice(0,7);
-  if(!/^\d{4}-\d{2}$/.test(startMonth))continue;
-  const day=Math.trunc(Number(r.due_day));
-  if(!Number.isFinite(day)||day<1||day>31)continue;
-  const amountCents=Math.round(Number(r.amount)*100);
-  if(!Number.isFinite(amountCents)||amountCents<=0)continue;
+ for(const account of accounts){
   for(let d=new Date(start);d<=end;d.setMonth(d.getMonth()+1)){
    const month=pfcRecMonth(d).slice(0,7);
+   const r=(states.get(account.id)||[]).find(v=>String(v.effective_month).slice(0,7)<=month);
+   if(!r||!r.active)continue;
+   const startMonth=String(r.start_month||'').slice(0,7);
    if(month<startMonth)continue;
-   if(r.frequency==='yearly'&&month.slice(5,7)!==startMonth.slice(5,7))continue;
+   const months=(Number(month.slice(0,4))-Number(startMonth.slice(0,4)))*12+Number(month.slice(5,7))-Number(startMonth.slice(5,7));
+   if(r.frequency==='yearly'&&months%12!==0)continue;
    if(r.frequency!=='monthly'&&r.frequency!=='yearly')continue;
-   if(paidKeys.has(r.id+'|'+month))continue;
+   if(r.repeat_count!=null&&(r.frequency==='yearly'?months/12:months)>=Number(r.repeat_count))continue;
+   const day=Math.trunc(Number(r.due_day));if(day<1||day>31)continue;
+   const amountCents=Math.round(Number(r.amount)*100);if(!Number.isFinite(amountCents)||amountCents<=0)continue;
+   if(paidKeys.has(account.id+'|'+month))continue;
    const due=new Date(d.getFullYear(),d.getMonth(),Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));
-   const item={id:r.id,name:r.description||'Conta recorrente',due:pfcRecDate(due),amountCents};
+   const item={id:account.id,name:r.description||'Conta recorrente',due:pfcRecDate(due),amountCents};
    if(due<today&&due>=oldest)overdue.push(item);
    else if(due>=today&&due<=last)soon.push(item);
   }
@@ -283,18 +285,19 @@ async function refreshRecurringDashboard(){
  const [oldAmount,newAmount]=[$('pfcRecOverdueAmount'),$('pfcRecUpcomingAmount')];
  oldAmount.textContent='…';newAmount.textContent='…';
  try{
-  const [accountsResult,paymentsResult]=await Promise.all([
-   sb.from('recurring_expenses').select('id,description,amount,frequency,due_day,start_month,active').eq('household_id',C.householdId),
-   sb.from('recurring_payments').select('recurring_id,period_month,reversed_at').eq('household_id',C.householdId)
+  const [accountsResult,paymentsResult,versionsResult]=await Promise.all([
+   sb.from('recurring_expenses').select('id').eq('household_id',C.householdId),
+   sb.from('recurring_payments').select('recurring_id,period_month,reversed_at').eq('household_id',C.householdId),
+   sb.from('pfc_recurring_versions').select('recurring_id,effective_month,start_month,description,amount,frequency,due_day,repeat_count,active').eq('household_id',C.householdId)
   ]);
   if(accountsResult.error)throw accountsResult.error;
-  if(paymentsResult.error)throw paymentsResult.error;
+  if(paymentsResult.error)throw paymentsResult.error;if(versionsResult.error)throw versionsResult.error;
   if(request!==recurringDashboardRequest||!user)return;
-  const result=summarizeRecurringDashboard(accountsResult.data||[],paymentsResult.data||[]);
+  const result=summarizeRecurringDashboard(accountsResult.data||[],paymentsResult.data||[],versionsResult.data||[]);
   oldAmount.textContent=brl(result.overdueCents/100);newAmount.textContent=brl(result.soonCents/100);
   $('pfcRecOverdueCount').textContent=`${result.overdue.length} ${result.overdue.length===1?'vencimento pendente':'vencimentos pendentes'}`;
   $('pfcRecUpcomingCount').textContent=`${result.soon.length} ${result.soon.length===1?'vencimento próximo':'vencimentos próximos'}`;
-  status.textContent='Contas ativas não pagas · vencidas nos últimos 12 meses ou a vencer em até 5 dias. Contas desativadas não entram.';
+  status.textContent='Competências conforme a vigência histórica de cada conta. Desativações futuras não apagam o passado.';
   const decorate=(id,items)=>{const el=$(id);if(el)el.title=items.length?items.map(x=>`${x.name} · ${fmt(x.due)} · ${brl(x.amountCents/100)}`).join('\n'):'Clique para abrir Recorrentes';};
   decorate('pfcRecOverdueCard',result.overdue);decorate('pfcRecUpcomingCard',result.soon);
  }catch(error){
@@ -305,14 +308,17 @@ async function refreshRecurringDashboard(){
   status.textContent='Não foi possível consultar as recorrências. Abra o Dashboard novamente para tentar.';
  }
 }
-function showView(n){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+n));document.querySelectorAll('.nav-item').forEach(a=>a.classList.toggle('active',a.dataset.view===n));const labels={dashboard:'Dashboard',transactions:'Lançamentos',extract:'Extrato',settlement:'Acerto de contas',cards:'Cartões e faturas',recurring:'Recorrentes',reports:'Relatórios',categories:'Categorias',settings:'Configurações'};const subs={dashboard:'Aqui está um panorama atualizado das finanças da família.',transactions:'Cadastre, acompanhe e corrija lançamentos manuais.',extract:'Consulte todas as movimentações em ordem contínua.',settlement:'Acompanhe quem pagou mais e os acertos entre Xavier e Talita.',cards:'Gerencie cartões, compras parceladas e pagamentos.',recurring:'Organize contas fixas e lançamentos programados.',reports:'Compare meses, totais e resultados do acerto familiar.',categories:'Organize receitas e despesas sem perder o histórico.',settings:'Seu perfil, segurança, usuários e preferências do aplicativo.'};$('crumb').textContent=labels[n]||n;if($('pageTitle')) $('pageTitle').textContent=n==='dashboard'?`Olá, ${currentMemberName} 👋`:(labels[n]||n);if($('pageSubtitle')) $('pageSubtitle').textContent=subs[n]||'';if($('pageSectionBadge')) $('pageSectionBadge').textContent=n==='dashboard'?'VISÃO DA FAMÍLIA':'PFC · FINANCEIRA COMPLETA';activeView=n;if(n==='dashboard'){void refreshOpenCardInvoices();void refreshRecurringDashboard();}const showPeriod=['dashboard','transactions','extract'].includes(n);if($('periodFilterControl'))$('periodFilterControl').hidden=!showPeriod;if(showPeriod){$('monthFilter').value=periodSelections[n];render();}$('sidebar').classList.remove('open');if(n==='settlement')renderSettlement();}
+function showView(n){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+n));document.querySelectorAll('.nav-item').forEach(a=>a.classList.toggle('active',a.dataset.view===n));const labels={dashboard:'Dashboard',transactions:'Lançamentos',extract:'Extrato',settlement:'Acerto de contas',cards:'Cartões e faturas',recurring:'Recorrentes',reports:'Relatórios',categories:'Categorias',settings:'Configurações'};const subs={dashboard:'Aqui está um panorama atualizado das finanças da família.',transactions:'Cadastre, acompanhe e corrija lançamentos manuais.',extract:'Consulte todas as movimentações em ordem contínua.',settlement:'Acompanhe quem pagou mais e os acertos entre Xavier e Talita.',cards:'Gerencie cartões, compras parceladas e pagamentos.',recurring:'Organize contas fixas e lançamentos programados.',reports:'Compare meses, totais e resultados do acerto familiar.',categories:'Organize receitas e despesas sem perder o histórico.',settings:'Seu perfil, segurança, usuários e preferências do aplicativo.'};$('crumb').textContent=labels[n]||n;if($('pageTitle')) $('pageTitle').textContent=n==='dashboard'?`Olá, ${currentMemberName} 👋`:(labels[n]||n);if($('pageSubtitle')) $('pageSubtitle').textContent=subs[n]||'';if($('pageSectionBadge')) $('pageSectionBadge').textContent=n==='dashboard'?'VISÃO DA FAMÍLIA':'PFC · FINANCEIRA COMPLETA';activeView=n;if(n==='dashboard'){void refreshOpenCardInvoices();void refreshRecurringDashboard();}const showPeriod=['dashboard','transactions','extract'].includes(n);if($('periodFilterControl'))$('periodFilterControl').hidden=!showPeriod;if(showPeriod){$('monthFilter').value=periodSelections[n];render();}$('sidebar').classList.remove('open');if(n==='settlement')renderSettlement();if(user)window.dispatchEvent(new CustomEvent('pfc:navigate',{detail:{view:n}}));}
 document.querySelectorAll('[data-view]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();showView(a.dataset.view)}));document.querySelectorAll('[data-go]').forEach(a=>a.addEventListener('click',()=>showView(a.dataset.go)));$('menuBtn').onclick=()=>$('sidebar').classList.toggle('open');$('settlementPeriod').addEventListener('change',()=>{ $('settlementMonth').disabled=$('settlementPeriod').value==='all';renderSettlement();});$('settlementMonth').value=[new Date().getFullYear(),String(new Date().getMonth()+1).padStart(2,'0')].join('-');$('settlementMonth').addEventListener('change',renderSettlement);$('monthFilter').addEventListener('change',()=>{periodSelections[activeView]=$('monthFilter').value;render();});
 $('settlementTargetMonth').value=$('settlementMonth').value;
 $('settlementPaidOn').value=new Date().toLocaleDateString('en-CA');
 for(const id of ['settlementFrom','settlementTo']) $(id).innerHTML=Object.entries(C.members).map(([uid,name])=>`<option value="${esc(uid)}">${esc(name)}</option>`).join('');
 $('settlementTo').selectedIndex=1;
 $('settlementForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('settlementSubmit');b.disabled=true;try{await recordSettlement();$('settlementMessage').textContent='Transferencia registrada. Saldo recalculado.';$('settlementAmount').value='';}catch(err){$('settlementMessage').textContent='Erro: '+err.message;}finally{b.disabled=false;}});
-window.addEventListener('pfc:invoicePaid',async()=>{await load();render();await refreshOpenCardInvoices();});window.addEventListener('pfc:profileUpdated',e=>{currentMemberName=e.detail||currentMemberName;if(activeView==='dashboard')showView('dashboard')});
+window.addEventListener('pfc:invoicePaid',async()=>{await load();render();await refreshOpenCardInvoices();});let pfcNavFetch=0;
+window.addEventListener('pfc:navigate',async()=>{const request=++pfcNavFetch;if(!user)return;try{await load();if(request!==pfcNavFetch||!user)return;render();if(activeView==='dashboard'){await Promise.all([refreshOpenCardInvoices(),refreshRecurringDashboard()]);}}catch(e){console.error('Atualizacao de dados ao navegar:',e);}});
+window.addEventListener('focus',()=>{if(user)window.dispatchEvent(new CustomEvent('pfc:navigate',{detail:{view:activeView}}));});
+window.addEventListener('pfc:profileUpdated',e=>{currentMemberName=e.detail||currentMemberName;if(activeView==='dashboard')showView('dashboard')});
 // O indicador abre a listagem completa de faturas; funciona também pelo teclado.
 for(const id of ['pfcRecOverdueCard','pfcRecUpcomingCard']){const el=$(id);if(el)el.addEventListener('click',()=>showView('recurring'));}
 window.addEventListener('pfc:invoicePaid',()=>{if(activeView==='dashboard')void refreshRecurringDashboard();});

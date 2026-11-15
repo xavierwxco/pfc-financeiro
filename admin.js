@@ -101,6 +101,7 @@ $('p46CategoryList').addEventListener('click',async e=>{const b=e.target.closest
 $('transactionForm')?.elements.type.addEventListener('change',refreshSelects);
 window.addEventListener('pfc:transactionFormOpened',refreshSelects);
 window.addEventListener('pfc:ready',init);
+window.addEventListener('pfc:navigate',e=>{if(['categories','settings'].includes(e.detail?.view))void init();});
 $('p46ProfileForm').addEventListener('submit',async e=>{e.preventDefault();const f=e.target,name=f.elements.displayName.value.trim();if(name.length<2)return;
  const {error}=await sb.from('pfc_profiles').upsert({user_id:user.id,display_name:name,updated_at:new Date().toISOString()},{onConflict:'user_id'});
  if(error)return status('p46ProfileStatus',error.message,true);profileName=name;updateHeader();window.dispatchEvent(new CustomEvent('pfc:profileUpdated',{detail:name}));status('p46ProfileStatus','Nome de exibição atualizado.');});

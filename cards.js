@@ -317,4 +317,5 @@ async function onReady(){
 el('addCardBtn').addEventListener('click',addCard);
 el('addPurchaseBtn').addEventListener('click',addPurchase);
 window.addEventListener('pfc:ready',onReady);
+window.addEventListener('pfc:navigate',e=>{if(e.detail?.view==='cards')void onReady();});
 })();
