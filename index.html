@@ -33,6 +33,7 @@
       <a class="nav-item" href="#personal-cards" data-view="personal-cards"><span aria-hidden="true">▣</span> Meus cartões (PPC)</a>
       <p class="nav-label">CONTAS E PATRIMÔNIO</p>
       <a class="nav-item" href="#bank-accounts" data-view="bank-accounts"><span aria-hidden="true">▥</span> Contas digitais</a>
+      <a class="nav-item" href="#pockets" data-view="pockets"><span aria-hidden="true">◉</span> Cofrinhos e reservas</a>
       <p class="nav-label">CONFIGURAÇÕES</p>
       <a class="nav-item" href="#categories" data-view="categories"><span>◇</span> Categorias</a>
       <a class="nav-item" href="#settings" data-view="settings"><span>⚙</span> Configurações</a>
@@ -267,6 +268,22 @@
  <article class="panel bank509-audit"><h2>Registro de auditoria (suas operações)</h2><p id="bank509Audit" class="muted">—</p></article>
 </section>
 
+<section class="view" id="view-pockets">
+ <div class="section-intro"><h2>Cofrinhos e reservas</h2><p>Separe dinheiro das contas digitais para suas metas. Aportes e resgates não são receitas ou despesas. Rendimentos creditados aumentam o saldo do banco.</p></div>
+ <div class="bank509-metrics p510-metrics"><article class="panel"><small>Saldo total nas contas visíveis</small><strong id="p510BankTotal">—</strong></article><article class="panel"><small>Guardado nos cofrinhos</small><strong id="p510ReservedTotal">—</strong></article><article class="panel"><small>Disponível para PIX e pagamentos</small><strong id="p510AvailableTotal">—</strong></article></div>
+ <p class="bank509-status" id="p510Status" role="status">Carregando…</p>
+ <div class="bank509-grid">
+  <article class="panel p510-panel"><div class="panel-head"><div><h2>Criar cofrinho</h2><p>A reserva herda as permissões da conta bancária.</p></div></div>
+   <form id="p510Create" class="bank509-form"><label>Conta digital<select id="p510Account" name="account_id" required></select></label><label>Nome do cofrinho<input name="name" maxlength="90" required placeholder="Ex.: Viagem em família"></label><label>Meta opcional (R$)<input name="goal_amount" type="number" min="0.01" step="0.01" placeholder="Sem meta definida"></label><button type="submit" class="primary-btn">Criar cofrinho</button></form>
+  </article>
+  <article class="panel p510-panel"><div class="panel-head"><div><h2>Guardar, resgatar ou registrar rendimento</h2><p>Registre rendimentos somente quando efetivamente creditados.</p></div></div>
+   <form id="p510Operation" class="bank509-form"><label>Cofrinho<select id="p510Pocket" name="pocket_id" required></select></label><div class="form-row"><label>Operação<select name="kind" required><option value="deposit">Aporte (guardar)</option><option value="withdrawal">Resgate (retirar)</option><option value="yield">Rendimento creditado</option></select></label><label>Valor (R$)<input name="amount" type="number" min="0.01" step="0.01" required></label></div><div class="form-row"><label>Data<input id="p510Date" name="occurred_on" type="date" required></label><label>Observação<input name="note" maxlength="250" placeholder="Ex.: Parte do 13º"></label></div><button type="submit" class="primary-btn">Registrar operação</button></form>
+  </article>
+ </div>
+ <article class="panel p510-panel"><div class="panel-head"><div><h2>Minhas reservas e metas</h2><p>O valor reservado faz parte do saldo bancário total; não deve ser somado novamente ao patrimônio.</p></div><button type="button" id="p510Refresh" class="outline-btn">Atualizar</button></div><div id="p510List" class="p510-list"></div></article>
+ <article class="panel p510-panel"><div class="panel-head"><div><h2>Histórico de aportes, resgates e rendimentos</h2><p>Correção por estorno com motivo. Nenhuma movimentação anterior é apagada.</p></div></div><div class="table-scroll"><table><thead><tr><th>DATA</th><th>COFRINHO</th><th>OPERAÇÃO</th><th class="right">VALOR</th><th>AÇÃO</th></tr></thead><tbody id="p510Events"></tbody></table></div></article>
+</section>
+
 <section class="view" id="view-personal-cards">
         <div class="ppc-heading"><div><h2>Meus cartões pessoais</h2><p>Nubank e outros cartões exclusivos da sua carteira. Nenhum valor é automaticamente lançado no PPC ou no PFC da família.</p></div><button class="outline-btn" id="personalCardsRefresh" type="button">Atualizar</button></div>
         <p id="personalCardsMessage" class="ppc-feedback" role="status" aria-live="polite"></p>
@@ -335,5 +352,5 @@
 <div class="form-row"><label>Categoria<select name="category" id="ppcCategory" required></select></label><label>Data<input name="entry_date" type="date" required /></label></div>
 <label>Observações (privadas)<input name="notes" maxlength="500" placeholder="Opcional" /></label>
 <div class="modal-actions"><button type="button" class="outline-btn" id="ppcModalCancel">Cancelar</button><button type="submit" class="primary-btn" id="ppcSubmit">Salvar</button></div></form></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="app.js"></script><script src="cards.js"></script><script src="reports.js"></script><script src="corrections.js"></script><script src="settlement_cancel.js"></script><script src="recurring.js"></script><script src="admin.js"></script><script src="ppc.js"></script><script src="payroll.js"></script><script src="personal_cards.js"></script><script src="ppc_dashboard_508.js"></script><script src="bank_accounts_509.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="app.js"></script><script src="cards.js"></script><script src="reports.js"></script><script src="corrections.js"></script><script src="settlement_cancel.js"></script><script src="recurring.js"></script><script src="admin.js"></script><script src="ppc.js"></script><script src="payroll.js"></script><script src="personal_cards.js"></script><script src="ppc_dashboard_508.js"></script><script src="bank_accounts_509.js"></script><script src="pockets_510.js"></script>
 </body></html>
